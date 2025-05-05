@@ -11,23 +11,28 @@ import SwiftData
 /// A single day's health metrics, stored locally via SwiftData and synced with CloudKit.
 @Model
 final class DailyHealthEntry {
-   @Attribute(.unique) var id: UUID
-   var date: Date
-   var wakeTime: Date
+   var id: UUID = UUID()
+
+   var date: Date = Date()
+   var wakeTime: Date = Date()
+
    var glucose: Double?
    var ketones: Double?
    var bloodPressure: String?
    var weight: Double?
    var sleepHours: Double?
    var stressLevel: Int?
-   var walkedAM: Bool
-   var walkedPM: Bool
+   var walkedAM: Bool = false
+   var walkedPM: Bool = false
+
    var firstMealTime: Date?
    var lastMealTime: Date?
+
    var steps: Int?
-   var wentToGym: Bool
+   var wentToGym: Bool = false
    var rlt: String?
-   var notes: String?
+
+   @Attribute(.externalStorage) var notes: String?
 
    init(
 	  id: UUID = UUID(),

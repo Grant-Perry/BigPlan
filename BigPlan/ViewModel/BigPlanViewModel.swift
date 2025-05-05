@@ -8,9 +8,11 @@
 import Foundation
 import SwiftData
 import OSLog
+import HealthKit
 private let logger = Logger(subsystem: "BigPlan", category: "BigPlanViewModel")
 
 /// ViewModel for BigPlan, handling form state and CRUD operations for DailyHealthEntry.
+@MainActor
 @Observable
 class BigPlanViewModel: ObservableObject {
    // MARK: - Stored Properties
@@ -28,6 +30,8 @@ class BigPlanViewModel: ObservableObject {
 		 )
 	  )) ?? []
    }
+
+   var healthKitAuthorized = false
 
    // MARK: - Form State Properties
 
@@ -75,6 +79,13 @@ class BigPlanViewModel: ObservableObject {
 		 self.wentToGym = entry.wentToGym
 		 self.rlt = entry.rlt
 		 self.notes = entry.notes
+	  }
+
+	  Task {
+		 healthKitAuthorized = await HealthKitManager.shared.requestAuthorization()
+		 if healthKitAuthorized && existingEntry == nil {
+			await fetchTodaySteps()
+		 }
 	  }
    }
 
@@ -149,6 +160,19 @@ class BigPlanViewModel: ObservableObject {
 		 context.delete(entry)
 	  }
    }
+
+   func requestHealthKitAuthorization() async {
+	  healthKitAuthorized = await HealthKitManager.shared.requestAuthorization()
+	  if healthKitAuthorized {
+		 await fetchTodaySteps()
+	  }
+   }
+
+   func fetchTodaySteps() async {
+	  await HealthKitManager.shared.fetchTodaySteps()
+	  self.steps = HealthKitManager.shared.todaySteps
+   }
+
    /// Indicates whether this view model is editing an existing entry.
    var isEditing: Bool {
 	  return existingEntry != nil

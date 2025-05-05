@@ -85,6 +85,8 @@ struct DailyListView: View {
 			   )
 			}
 		 }
+
+		 AppConstants.VersionFooter()
 	  }
    }
 

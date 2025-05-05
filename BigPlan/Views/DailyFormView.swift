@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import OSLog
+import HealthKit
 
 private let logger = Logger(subsystem: "BigPlan", category: "SaveDebug")
 
@@ -19,31 +20,37 @@ struct DailyFormView: View {
 
    var body: some View {
 	  NavigationStack {
-		 VStack(alignment: .leading, spacing: 4) {
-			VStack(alignment: .leading, spacing: 2) {
-			   Text(bigPlanViewModel.isEditing ? "Edit Entry" : "New Entry")
-				  .font(.title2)
-				  .fontWeight(.semibold)
-			   Text(bigPlanViewModel.date.formatted(date: .abbreviated, time: .omitted))
-				  .font(.subheadline)
-				  .foregroundColor(.secondary)
-			}
-			.padding(.horizontal)
-			.padding(.top, 8)
+		 ScrollView {
+			VStack(alignment: .leading, spacing: 20) {
+			   VStack(alignment: .leading, spacing: 4) {
+				  Text(bigPlanViewModel.isEditing ? "Edit Entry" : "New Entry")
+					 .font(.title)
+					 .fontWeight(.semibold)
+				  Text(bigPlanViewModel.date.formatted(date: .abbreviated, time: .omitted))
+					 .font(.subheadline)
+					 .foregroundColor(.gray)
+			   }
+			   .padding(.horizontal)
 
-			Form {
-			   DateTimeView(bigPlanViewModel: bigPlanViewModel)
-			   ReadingsView(bigPlanViewModel: bigPlanViewModel)
-			   SleepStressView(bigPlanViewModel: bigPlanViewModel)
-			   ActivityView(bigPlanViewModel: bigPlanViewModel)
-			   MealsView(bigPlanViewModel: bigPlanViewModel)
-			   NotesView(bigPlanViewModel: bigPlanViewModel)
-			   ActionButtonsView(
-				  bigPlanViewModel: bigPlanViewModel,
-				  selectedTab: $selectedTab
-			   )
+			   VStack(spacing: 24) {
+				  DateTimeView(bigPlanViewModel: bigPlanViewModel)
+				  ReadingsView(bigPlanViewModel: bigPlanViewModel)
+				  SleepStressView(bigPlanViewModel: bigPlanViewModel)
+				  ActivityView(bigPlanViewModel: bigPlanViewModel)
+				  MealsView(bigPlanViewModel: bigPlanViewModel)
+				  NotesView(bigPlanViewModel: bigPlanViewModel)
+				  ActionButtonsView(
+					 bigPlanViewModel: bigPlanViewModel,
+					 selectedTab: $selectedTab
+				  )
+			   }
+			   .padding(.horizontal)
+
+			   Spacer(minLength: 20)
+			   VersionFooter()
 			}
 		 }
+		 .scrollDismissesKeyboard(.immediately)
 		 .navigationBarTitleDisplayMode(.inline)
 		 .toolbar {
 			ToolbarItem(placement: .navigationBarTrailing) {
@@ -65,11 +72,16 @@ private struct DateTimeView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
 
    var body: some View {
-	  Section {
-		 DatePicker("Date", selection: $bigPlanViewModel.date, displayedComponents: .date)
-		 DatePicker("Wake Time", selection: $bigPlanViewModel.wakeTime, displayedComponents: .hourAndMinute)
-	  } header: {
+	  VStack(alignment: .leading, spacing: 12) {
 		 Text("Date & Time")
+			.font(.headline)
+			.padding(.top)
+
+		 DatePicker("Date", selection: $bigPlanViewModel.date, displayedComponents: .date)
+			.labelsHidden()
+
+		 DatePicker("Wake Time", selection: $bigPlanViewModel.wakeTime, displayedComponents: .hourAndMinute)
+			.labelsHidden()
 	  }
    }
 }
@@ -80,75 +92,57 @@ private struct ReadingsView: View {
    @State private var diastolic: String = ""
 
    var body: some View {
-	  Section {
-		 glucoseField
-		 ketonesField
-		 bloodPressureField
-		 weightField
-	  } header: {
-		 Text("Readings")
-	  }
-	  .onAppear {
-		 loadBloodPressure()
-	  }
-   }
+	  VStack(alignment: .leading, spacing: 20) {
+		 Text("READINGS")
+			.font(.subheadline)
+			.foregroundColor(.gray)
 
-   private var glucoseField: some View {
-	  LabeledContent("Glucose (mg/dL)") {
-		 TextField("Enter glucose", value: $bigPlanViewModel.glucose, format: .number.rounded())
-			.keyboardType(.decimalPad)
-			.textFieldStyle(.roundedBorder)
-			.multilineTextAlignment(.trailing)
-	  }
-   }
-
-   private var ketonesField: some View {
-	  LabeledContent("Ketones (mmol/L)") {
-		 TextField("Enter ketones", value: $bigPlanViewModel.ketones, format: .number.rounded())
-			.keyboardType(.decimalPad)
-			.textFieldStyle(.roundedBorder)
-			.multilineTextAlignment(.trailing)
-	  }
-   }
-
-   private var bloodPressureField: some View {
-	  LabeledContent("Blood Pressure") {
-		 HStack {
-			TextField("Systolic", text: $systolic)
-			   .placeholder(when: systolic.isEmpty) {
-				  Text("120").foregroundColor(.gray.opacity(0.5))
-			   }
-			   .keyboardType(.numberPad)
-			   .textFieldStyle(.roundedBorder)
-			   .frame(maxWidth: 80)
-			Text("/")
-			TextField("Diastolic", text: $diastolic)
-			   .placeholder(when: diastolic.isEmpty) {
-				  Text("80").foregroundColor(.gray.opacity(0.5))
-			   }
-			   .keyboardType(.numberPad)
-			   .textFieldStyle(.roundedBorder)
-			   .frame(maxWidth: 80)
-		 }
-	  }
-	  .onChange(of: systolic) { _, _ in
-		 updateBloodPressure()
-	  }
-	  .onChange(of: diastolic) { _, _ in
-		 updateBloodPressure()
-	  }
-   }
-
-   private var weightField: some View {
-	  LabeledContent("Weight (lbs.)") {
-		 TextField("Enter weight lbs.", value: $bigPlanViewModel.weight, format: .number.rounded())
-			.keyboardType(.decimalPad)
-			.textFieldStyle(.roundedBorder)
-			.multilineTextAlignment(.trailing)
-			.placeholder(when: bigPlanViewModel.weight == nil) {
-			   Text("185.0").foregroundColor(.gray.opacity(0.5))
+		 VStack(spacing: 16) {
+			HStack {
+			   Text("Glucose (mg/dL)")
+			   Spacer()
+			   TextField("", value: $bigPlanViewModel.glucose, format: .number.rounded())
+				  .keyboardType(.decimalPad)
+				  .multilineTextAlignment(.trailing)
 			}
+			Divider()
+
+			HStack {
+			   Text("Ketones (mmol/L)")
+			   Spacer()
+			   TextField("", value: $bigPlanViewModel.ketones, format: .number.rounded())
+				  .keyboardType(.decimalPad)
+				  .multilineTextAlignment(.trailing)
+			}
+			Divider()
+
+			HStack {
+			   Text("Blood Pressure")
+			   Spacer()
+			   TextField("", text: $systolic)
+				  .placeholder(when: systolic.isEmpty) {
+					 Text("120").foregroundColor(.gray.opacity(0.5))
+				  }
+				  .keyboardType(.numberPad)
+				  .multilineTextAlignment(.trailing)
+				  .frame(width: 50)
+			   Text("/")
+			   TextField("", text: $diastolic)
+				  .placeholder(when: diastolic.isEmpty) {
+					 Text("80").foregroundColor(.gray.opacity(0.5))
+				  }
+				  .keyboardType(.numberPad)
+				  .multilineTextAlignment(.trailing)
+				  .frame(width: 50)
+			}
+		 }
+		 .padding()
+		 .background(Color(.secondarySystemBackground))
+		 .cornerRadius(10)
 	  }
+	  .onChange(of: systolic) { updateBloodPressure() }
+	  .onChange(of: diastolic) { updateBloodPressure() }
+	  .onAppear { loadBloodPressure() }
    }
 
    private func loadBloodPressure() {
@@ -173,59 +167,153 @@ private struct SleepStressView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
 
    var body: some View {
-	  Section("Sleep & Stress") {
-		 LabeledContent("Sleep Hours") {
-			TextField("Enter hours", value: $bigPlanViewModel.sleepHours, format: .number.rounded())
-			   .keyboardType(.decimalPad)
-			   .textFieldStyle(.roundedBorder)
-			   .multilineTextAlignment(.trailing)
-		 }
+	  VStack(alignment: .leading, spacing: 20) {
+		 Text("SLEEP & STRESS")
+			.font(.subheadline)
+			.foregroundColor(.gray)
 
-		 Picker("Stress Level", selection: Binding(
-			get: {
-			   switch bigPlanViewModel.stressLevel {
-				  case 1: return "Low"
-				  case 2: return "Medium"
-				  case 3: return "High"
-				  default: return ""
-			   }
-			},
-			set: { newValue in
-			   switch newValue {
-				  case "Low": bigPlanViewModel.stressLevel = 1
-				  case "Medium": bigPlanViewModel.stressLevel = 2
-				  case "High": bigPlanViewModel.stressLevel = 3
-				  default: bigPlanViewModel.stressLevel = nil
-			   }
+		 VStack(spacing: 16) {
+			HStack {
+			   Text("Sleep Hours")
+			   Spacer()
+			   TextField("", value: $bigPlanViewModel.sleepHours, format: .number.rounded())
+				  .keyboardType(.decimalPad)
+				  .multilineTextAlignment(.trailing)
 			}
-		 )) {
-			Text("").tag("")
-			Text("Low").tag("Low")
-			Text("Medium").tag("Medium")
-			Text("High").tag("High")
+			Divider()
+
+			HStack {
+			   Text("Stress Level")
+			   Spacer()
+			   Picker("", selection: Binding(
+				  get: {
+					 switch bigPlanViewModel.stressLevel {
+						case 1: return "Low"
+						case 2: return "Medium"
+						case 3: return "High"
+						default: return ""
+					 }
+				  },
+				  set: { newValue in
+					 switch newValue {
+						case "Low": bigPlanViewModel.stressLevel = 1
+						case "Medium": bigPlanViewModel.stressLevel = 2
+						case "High": bigPlanViewModel.stressLevel = 3
+						default: bigPlanViewModel.stressLevel = nil
+					 }
+				  }
+			   )) {
+				  Text("").tag("")
+				  Text("Low").tag("Low")
+				  Text("Medium").tag("Medium")
+				  Text("High").tag("High")
+			   }
+			   .labelsHidden()
+			}
 		 }
+		 .padding()
+		 .background(Color(.secondarySystemBackground))
+		 .cornerRadius(10)
 	  }
    }
 }
 
 private struct ActivityView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
+   @State private var showHealthKitAuth = false
+   @State private var isFetchingSteps = false
 
    var body: some View {
-	  Section("Activity") {
-		 Toggle("Walked AM", isOn: $bigPlanViewModel.walkedAM)
-		 Toggle("Walked PM", isOn: $bigPlanViewModel.walkedPM)
-		 Toggle("Went to Gym", isOn: $bigPlanViewModel.wentToGym)
-		 Toggle("Red Light Therapy (RLT)", isOn: Binding(
-			get: { bigPlanViewModel.rlt != nil && !bigPlanViewModel.rlt!.isEmpty },
-			set: { bigPlanViewModel.rlt = $0 ? "yes" : nil }
-		 ))
-		 LabeledContent("Steps") {
-			TextField("Enter steps", value: $bigPlanViewModel.steps, format: .number)
-			   .keyboardType(.numberPad)
-			   .textFieldStyle(.roundedBorder)
-			   .multilineTextAlignment(.trailing)
+	  VStack(alignment: .leading, spacing: 20) {
+		 Text("ACTIVITY")
+			.font(.subheadline)
+			.foregroundColor(.gray)
+
+		 VStack(spacing: 16) {
+			HStack {
+			   Text("Walked AM")
+			   Spacer()
+			   Toggle("", isOn: $bigPlanViewModel.walkedAM)
+				  .labelsHidden()
+			}
+			Divider()
+
+			HStack {
+			   Text("Walked PM")
+			   Spacer()
+			   Toggle("", isOn: $bigPlanViewModel.walkedPM)
+				  .labelsHidden()
+			}
+			Divider()
+
+			HStack {
+			   Text("Went to Gym")
+			   Spacer()
+			   Toggle("", isOn: $bigPlanViewModel.wentToGym)
+				  .labelsHidden()
+			}
+			Divider()
+
+			HStack {
+			   Text("Red Light Therapy")
+			   Spacer()
+			   Toggle("", isOn: Binding(
+				  get: { bigPlanViewModel.rlt != nil && !bigPlanViewModel.rlt!.isEmpty },
+				  set: { bigPlanViewModel.rlt = $0 ? "yes" : nil }
+			   ))
+			   .labelsHidden()
+			}
+			Divider()
+
+			HStack {
+			   Text("Steps")
+			   Spacer()
+			   if isFetchingSteps {
+				  ProgressView()
+					 .frame(width: 44)
+			   } else if bigPlanViewModel.healthKitAuthorized {
+				  HStack(spacing: 8) {
+					 TextField("", value: $bigPlanViewModel.steps, format: .number)
+						.keyboardType(.numberPad)
+						.multilineTextAlignment(.trailing)
+						.frame(width: 80)
+
+					 if !bigPlanViewModel.isEditing {
+						Button {
+						   Task {
+							  isFetchingSteps = true
+							  await bigPlanViewModel.fetchTodaySteps()
+							  isFetchingSteps = false
+						   }
+						} label: {
+						   Image(systemName: "arrow.clockwise")
+							  .foregroundColor(.accentColor)
+						}
+					 }
+				  }
+			   } else {
+				  Button("Sync") {
+					 showHealthKitAuth = true
+				  }
+				  .buttonStyle(.bordered)
+			   }
+			}
 		 }
+		 .padding()
+		 .background(Color(.secondarySystemBackground))
+		 .cornerRadius(10)
+	  }
+	  .alert("Health Access", isPresented: $showHealthKitAuth) {
+		 Button("Allow Access") {
+			Task {
+			   isFetchingSteps = true
+			   await bigPlanViewModel.requestHealthKitAuthorization()
+			   isFetchingSteps = false
+			}
+		 }
+		 Button("Cancel", role: .cancel) {}
+	  } message: {
+		 Text("Allow BigPlan to access your step count data from Health?")
 	  }
    }
 }
@@ -234,16 +322,36 @@ private struct MealsView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
 
    var body: some View {
-	  Section("Meals") {
-		 DatePicker("First Meal", selection: Binding(
-			get: { bigPlanViewModel.firstMealTime ?? Date() },
-			set: { bigPlanViewModel.firstMealTime = $0 }
-		 ), displayedComponents: .hourAndMinute)
+	  VStack(alignment: .leading, spacing: 20) {
+		 Text("MEALS")
+			.font(.subheadline)
+			.foregroundColor(.gray)
 
-		 DatePicker("Last Meal", selection: Binding(
-			get: { bigPlanViewModel.lastMealTime ?? Date() },
-			set: { bigPlanViewModel.lastMealTime = $0 }
-		 ), displayedComponents: .hourAndMinute)
+		 VStack(spacing: 16) {
+			HStack {
+			   Text("First Meal")
+			   Spacer()
+			   DatePicker("", selection: Binding(
+				  get: { bigPlanViewModel.firstMealTime ?? Date() },
+				  set: { bigPlanViewModel.firstMealTime = $0 }
+			   ), displayedComponents: .hourAndMinute)
+			   .labelsHidden()
+			}
+			Divider()
+
+			HStack {
+			   Text("Last Meal")
+			   Spacer()
+			   DatePicker("", selection: Binding(
+				  get: { bigPlanViewModel.lastMealTime ?? Date() },
+				  set: { bigPlanViewModel.lastMealTime = $0 }
+			   ), displayedComponents: .hourAndMinute)
+			   .labelsHidden()
+			}
+		 }
+		 .padding()
+		 .background(Color(.secondarySystemBackground))
+		 .cornerRadius(10)
 	  }
    }
 }
@@ -252,26 +360,28 @@ private struct NotesView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
 
    var body: some View {
-	  Section("Notes") {
-		 let notesBinding = Binding(
+	  VStack(alignment: .leading, spacing: 12) {
+		 Text("Notes")
+			.font(.headline)
+			.padding(.top)
+
+		 TextEditor(text: Binding(
 			get: { bigPlanViewModel.notes ?? "" },
 			set: { bigPlanViewModel.notes = $0.isEmpty ? nil : $0 }
+		 ))
+		 .frame(minHeight: 100)
+		 .overlay(
+			Group {
+			   if (bigPlanViewModel.notes ?? "").isEmpty {
+				  Text("Enter any additional notes here...")
+					 .foregroundColor(.gray.opacity(0.5))
+					 .padding(.top, 16)
+					 .padding(.leading, 12)
+			   }
+			},
+			alignment: .topLeading
 		 )
-		 TextEditor(text: notesBinding)
-			.frame(minHeight: 100)
-			.padding(8)
-			.background(RoundedRectangle(cornerRadius: 8).fill(Color(.secondarySystemBackground)))
-			.overlay(
-			   Group {
-				  if notesBinding.wrappedValue.isEmpty {
-					 Text("Enter any additional notes here...")
-						.foregroundColor(.gray.opacity(0.5))
-						.padding(.top, 16)
-						.padding(.leading, 12)
-				  }
-			   },
-			   alignment: .topLeading
-			)
+		 .textFieldStyle(.roundedBorder)
 	  }
    }
 }
@@ -283,14 +393,18 @@ private struct ActionButtonsView: View {
    @State private var showDeleteConfirmation = false
 
    var body: some View {
-	  Section {
+	  VStack(alignment: .leading, spacing: 12) {
+		 Text("Actions")
+			.font(.headline)
+			.padding(.top)
+
 		 VStack(spacing: 12) {
 			Button("Save Entry") {
 			   bigPlanViewModel.saveEntry()
 			   if bigPlanViewModel.isEditing {
-				  dismiss()  // Dismiss if editing existing entry
+				  dismiss()
 			   } else {
-				  selectedTab = 0  // Go to list if new entry
+				  selectedTab = 0
 			   }
 			}
 			.frame(maxWidth: .infinity)
@@ -339,5 +453,14 @@ struct DailyFormView_Previews: PreviewProvider {
 		 bigPlanViewModel: BigPlanViewModel(context: context)
 	  )
 	  .modelContainer(container)
+   }
+}
+
+struct VersionFooter: View {
+   var body: some View {
+	  Text("Version 1.0")
+		 .font(.footnote)
+		 .foregroundColor(.secondary)
+		 .padding(.bottom, 16)
    }
 }

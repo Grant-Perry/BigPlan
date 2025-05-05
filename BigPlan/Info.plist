@@ -6,5 +6,7 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+    <key>NSHealthShareUsageDescription</key>
+    <string>BigPlan needs access to your step count to automatically track your daily activity.</string>
 </dict>
 </plist>
