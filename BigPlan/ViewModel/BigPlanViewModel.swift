@@ -44,58 +44,64 @@ class BigPlanViewModel: ObservableObject {
 	  set { _hasUnsavedChanges = newValue }
    }
 
-   // MARK: - Form State Properties with Change Tracking
+   var isSaving = false
+   var isInitializing = false
 
-   var date: Date = .now {
-	  didSet { _hasUnsavedChanges = true }
+   // MARK: - Form State Properties
+   var date: Date = .now
+   var wakeTime: Date = .now
+   var glucose: Double? = nil
+   var ketones: Double? = nil
+   var bloodPressure: String? = nil
+   var weight: Double? = nil
+   var sleepTime: String? = nil
+   var stressLevel: Int? = nil
+   var walkedAM: Bool = false
+   var walkedPM: Bool = false
+   var firstMealTime: Date? = nil
+   var lastMealTime: Date? = nil
+   var steps: Int? = nil
+   var wentToGym: Bool = false
+   var rlt: String? = nil
+   var weatherData: String? = nil
+   var notes: String? = nil
+
+   var formValues: [String: Any] {
+	  [
+		 "glucose": glucose as Any,
+		 "ketones": ketones as Any,
+		 "bloodPressure": bloodPressure as Any,
+		 "weight": weight as Any,
+		 "sleepTime": sleepTime as Any,
+		 "stressLevel": stressLevel as Any,
+		 "walkedAM": walkedAM,
+		 "walkedPM": walkedPM,
+		 "firstMealTime": firstMealTime as Any,
+		 "lastMealTime": lastMealTime as Any,
+		 "steps": steps as Any,
+		 "wentToGym": wentToGym,
+		 "rlt": rlt as Any,
+		 "notes": notes as Any
+	  ]
    }
-   var wakeTime: Date = .now {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var glucose: Double? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var ketones: Double? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var bloodPressure: String? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var weight: Double? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var sleepTime: String? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var stressLevel: Int? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var walkedAM: Bool = false {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var walkedPM: Bool = false {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var firstMealTime: Date? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var lastMealTime: Date? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var steps: Int? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var wentToGym: Bool = false {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var rlt: String? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var weatherData: String? = nil {
-	  didSet { _hasUnsavedChanges = true }
-   }
-   var notes: String? = nil {
-	  didSet { _hasUnsavedChanges = true }
+
+   var formValuesString: String {
+   """
+   glucose:\(String(describing: glucose))
+   ketones:\(String(describing: ketones))
+   bloodPressure:\(String(describing: bloodPressure))
+   weight:\(String(describing: weight))
+   sleepTime:\(String(describing: sleepTime))
+   stressLevel:\(String(describing: stressLevel))
+   walkedAM:\(walkedAM)
+   walkedPM:\(walkedPM)
+   firstMealTime:\(String(describing: firstMealTime))
+   lastMealTime:\(String(describing: lastMealTime))
+   steps:\(String(describing: steps))
+   wentToGym:\(wentToGym)
+   rlt:\(String(describing: rlt))
+   notes:\(String(describing: notes))
+   """
    }
 
    // MARK: - Initialization
@@ -107,29 +113,30 @@ class BigPlanViewModel: ObservableObject {
    init(context: ModelContext, existingEntry: DailyHealthEntry? = nil) {
 	  self.context = context
 	  self.existingEntry = existingEntry
-	  _hasUnsavedChanges = false  // Start with no unsaved changes
-
-	  if let entry = existingEntry {
-		 self.date = entry.date
-		 self.wakeTime = entry.wakeTime
-		 self.glucose = entry.glucose
-		 self.ketones = entry.ketones
-		 self.bloodPressure = entry.bloodPressure
-		 self.weight = entry.weight
-		 self.sleepTime = entry.sleepTime
-		 self.stressLevel = entry.stressLevel
-		 self.walkedAM = entry.walkedAM
-		 self.walkedPM = entry.walkedPM
-		 self.firstMealTime = entry.firstMealTime
-		 self.lastMealTime = entry.lastMealTime
-		 self.steps = entry.steps
-		 self.wentToGym = entry.wentToGym
-		 self.rlt = entry.rlt
-		 self.weatherData = entry.weatherData
-		 self.notes = entry.notes
-	  }
 
 	  Task {
+		 isInitializing = true
+		 // ... existing initialization code ...
+		 if let entry = existingEntry {
+			self.date = entry.date
+			self.wakeTime = entry.wakeTime
+			self.glucose = entry.glucose
+			self.ketones = entry.ketones
+			self.bloodPressure = entry.bloodPressure
+			self.weight = entry.weight
+			self.sleepTime = entry.sleepTime
+			self.stressLevel = entry.stressLevel
+			self.walkedAM = entry.walkedAM
+			self.walkedPM = entry.walkedPM
+			self.firstMealTime = entry.firstMealTime
+			self.lastMealTime = entry.lastMealTime
+			self.steps = entry.steps
+			self.wentToGym = entry.wentToGym
+			self.rlt = entry.rlt
+			self.weatherData = entry.weatherData
+			self.notes = entry.notes
+		 }
+
 		 healthKitAuthorized = await HealthKitManager.shared.requestAuthorization()
 		 if healthKitAuthorized && existingEntry == nil {
 			await fetchTodaySteps()
@@ -137,6 +144,7 @@ class BigPlanViewModel: ObservableObject {
 		 if existingEntry == nil || Calendar.current.isDateInToday(date) {
 			await fetchAndAppendWeather()
 		 }
+		 isInitializing = false
 	  }
    }
 
@@ -144,61 +152,66 @@ class BigPlanViewModel: ObservableObject {
 
    /// Saves the current form values as a new `DailyHealthEntry`.
    func saveEntry() {
-	  do {
-		 let entry: DailyHealthEntry
+	  Task {
+		 isSaving = true
+		 defer { isSaving = false }
 
-		 if let existingEntry = self.existingEntry {
-			entry = existingEntry
-			entry.date = date
-			entry.wakeTime = wakeTime
-			entry.glucose = glucose
-			entry.ketones = ketones
-			entry.bloodPressure = bloodPressure
-			entry.weight = weight
-			entry.sleepTime = sleepTime
-			entry.stressLevel = stressLevel
-			entry.walkedAM = walkedAM
-			entry.walkedPM = walkedPM
-			entry.firstMealTime = firstMealTime
-			entry.lastMealTime = lastMealTime
-			entry.steps = steps
-			entry.wentToGym = wentToGym
-			entry.rlt = rlt
-			entry.weatherData = weatherData
-			entry.notes = notes
-		 } else {
-			entry = DailyHealthEntry(
-			   date: date,
-			   wakeTime: wakeTime,
-			   glucose: glucose,
-			   ketones: ketones,
-			   bloodPressure: bloodPressure,
-			   weight: weight,
-			   sleepTime: sleepTime,
-			   stressLevel: stressLevel,
-			   walkedAM: walkedAM,
-			   walkedPM: walkedPM,
-			   firstMealTime: firstMealTime,
-			   lastMealTime: lastMealTime,
-			   steps: steps,
-			   wentToGym: wentToGym,
-			   rlt: rlt,
-			   weatherData: weatherData,
-			   notes: notes
-			)
-			context.insert(entry)
+		 do {
+			let entry: DailyHealthEntry
+
+			if let existingEntry = self.existingEntry {
+			   entry = existingEntry
+			   entry.date = date
+			   entry.wakeTime = wakeTime
+			   entry.glucose = glucose
+			   entry.ketones = ketones
+			   entry.bloodPressure = bloodPressure
+			   entry.weight = weight
+			   entry.sleepTime = sleepTime
+			   entry.stressLevel = stressLevel
+			   entry.walkedAM = walkedAM
+			   entry.walkedPM = walkedPM
+			   entry.firstMealTime = firstMealTime
+			   entry.lastMealTime = lastMealTime
+			   entry.steps = steps
+			   entry.wentToGym = wentToGym
+			   entry.rlt = rlt
+			   entry.weatherData = weatherData
+			   entry.notes = notes
+			} else {
+			   entry = DailyHealthEntry(
+				  date: date,
+				  wakeTime: wakeTime,
+				  glucose: glucose,
+				  ketones: ketones,
+				  bloodPressure: bloodPressure,
+				  weight: weight,
+				  sleepTime: sleepTime,
+				  stressLevel: stressLevel,
+				  walkedAM: walkedAM,
+				  walkedPM: walkedPM,
+				  firstMealTime: firstMealTime,
+				  lastMealTime: lastMealTime,
+				  steps: steps,
+				  wentToGym: wentToGym,
+				  rlt: rlt,
+				  weatherData: weatherData,
+				  notes: notes
+			   )
+			   context.insert(entry)
+			}
+
+			logger.info("💾 Attempting to save entry: \(entry.id)")
+			try context.save()
+			logger.info("✅ Save successful")
+
+			let descriptor = FetchDescriptor<DailyHealthEntry>()
+			let savedEntries = try context.fetch(descriptor)
+			logger.info("📊 Total entries after save: \(savedEntries.count)")
+			_hasUnsavedChanges = false  // Reset after successful save
+		 } catch {
+			logger.error("❌ Save failed: \(error.localizedDescription)")
 		 }
-
-		 logger.info("💾 Attempting to save entry: \(entry.id)")
-		 try context.save()
-		 logger.info("✅ Save successful")
-
-		 let descriptor = FetchDescriptor<DailyHealthEntry>()
-		 let savedEntries = try context.fetch(descriptor)
-		 logger.info("📊 Total entries after save: \(savedEntries.count)")
-		 _hasUnsavedChanges = false  // Reset after successful save
-	  } catch {
-		 logger.error("❌ Save failed: \(error.localizedDescription)")
 	  }
    }
 

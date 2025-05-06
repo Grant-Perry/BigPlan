@@ -52,16 +52,16 @@ struct MainSplashView: View {
 
 			   // Footer
 			   VStack(spacing: 10) {
-				  AppConstants.VersionFooter()
-					 .font(.system(size: 14, weight: .medium, design: .rounded))
-					 .shadow(color: Color.gpBlue.opacity(0.8), radius: 10, x: 0, y: 5)
-					 .offset(y: 14)
+				  AppConstants.VersionFooter(foreGround: .white,
+											 fontSize: .system(size: 16),
+											 bottomPadding: 2.0)
+//				  .shadow(color: Color.gpBlue.opacity(0.8), radius: 10, x: 0, y: 5)
 
 				  Text("Gp. Delicious Studios - © \(String(currentYear))")
 					 .font(.system(size: 12, weight: .medium, design: .rounded))
-					 .foregroundColor(.gpWhite)
 					 .shadow(color: .pink.opacity(0.8), radius: 10, x: 0, y: 5)
 			   }
+//			   .foregroundColor(.gpWhite)
 			   .padding(.bottom, 10)
 			}
 		 }

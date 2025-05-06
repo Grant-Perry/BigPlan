@@ -33,35 +33,62 @@ struct DailyFormView: View {
 
    var body: some View {
 	  NavigationStack {
-		 ScrollView {
-			VStack(alignment: .leading, spacing: 20) {
-			   VStack(alignment: .leading, spacing: 4) {
-				  Text(bigPlanViewModel.isEditing ? "Edit Entry" : "New Entry")
-					 .font(.title)
-					 .fontWeight(.semibold)
-				  Text(bigPlanViewModel.date.formatted(date: .abbreviated, time: .omitted))
-					 .font(.subheadline)
-					 .foregroundColor(.gray)
-			   }
-			   .padding(.horizontal)
+		 ZStack {
+			ScrollView {
+			   VStack(alignment: .leading, spacing: 20) {
+				  VStack(alignment: .leading, spacing: 4) {
+					 Text(bigPlanViewModel.isEditing ? "Edit Entry" : "New Entry")
+						.font(.title)
+						.fontWeight(.semibold)
+					 Text(bigPlanViewModel.date.formatted(date: .abbreviated, time: .omitted))
+						.font(.subheadline)
+						.foregroundColor(.gray)
+				  }
+				  .padding(.horizontal)
 
-			   VStack(spacing: 24) {
-				  DateTimeView(bigPlanViewModel: bigPlanViewModel)
-				  ReadingsView(bigPlanViewModel: bigPlanViewModel)
-				  SleepStressView(bigPlanViewModel: bigPlanViewModel)
-				  ActivityView(bigPlanViewModel: bigPlanViewModel)
-				  MealsView(bigPlanViewModel: bigPlanViewModel)
-				  NotesView(bigPlanViewModel: bigPlanViewModel)
-				  ActionButtonsView(
-					 bigPlanViewModel: bigPlanViewModel,
-					 selectedTab: $selectedTab
-				  )
-			   }
-			   .padding(.horizontal)
+				  VStack(spacing: 24) {
+					 DateTimeView(bigPlanViewModel: bigPlanViewModel)
+					 ReadingsView(bigPlanViewModel: bigPlanViewModel)
+					 SleepStressView(bigPlanViewModel: bigPlanViewModel)
+					 ActivityView(bigPlanViewModel: bigPlanViewModel)
+					 MealsView(bigPlanViewModel: bigPlanViewModel)
+					 NotesView(bigPlanViewModel: bigPlanViewModel)
+					 ActionButtonsView(
+						bigPlanViewModel: bigPlanViewModel,
+						selectedTab: $selectedTab
+					 )
+				  }
+				  .padding(.horizontal)
 
-			   Spacer(minLength: 20)
-			   AppConstants.VersionFooter()
+				  Spacer(minLength: 20)
+				  AppConstants.VersionFooter()
+			   }
 			}
+			.disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
+			.opacity(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving ? 0.6 : 1.0)
+
+			if bigPlanViewModel.isInitializing {
+			   VStack {
+				  ProgressView()
+					 .controlSize(.large)
+				  Text("Loading...")
+					 .foregroundColor(.secondary)
+					 .padding(.top)
+			   }
+			}
+
+			if bigPlanViewModel.isSaving {
+			   VStack {
+				  ProgressView()
+					 .controlSize(.large)
+				  Text("Saving...")
+					 .foregroundColor(.secondary)
+					 .padding(.top)
+			   }
+			}
+		 }
+		 .onChange(of: bigPlanViewModel.formValuesString) { _, _ in
+			bigPlanViewModel.hasUnsavedChanges = true
 		 }
 		 .onAppear {
 			bigPlanViewModel.hasUnsavedChanges = false
@@ -79,6 +106,7 @@ struct DailyFormView: View {
 					 Text("Health History")
 				  }
 			   }
+			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
 			}
 			ToolbarItem(placement: .navigationBarTrailing) {
 			   Button("Done") {
@@ -89,6 +117,7 @@ struct DailyFormView: View {
 					 selectedTab = 0
 				  }
 			   }
+			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
 			}
 		 }
 		 .alert("Save Changes?", isPresented: $showingDismissAlert) {

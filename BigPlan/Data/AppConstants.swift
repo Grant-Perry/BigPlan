@@ -9,12 +9,15 @@ struct AppConstants {
 
    // Add a reusable version footer view
    struct VersionFooter: View {
+	  var foreGround: Color = .secondary
+	  var fontSize: Font = .footnote
+	  var bottomPadding: CGFloat = 8.0
+
 	  var body: some View {
 		 Text("Version: \(AppConstants.getVersion())")
-			.font(.footnote)
-			.foregroundColor(.secondary)
-			.frame(maxWidth: .infinity)
-			.padding(.bottom, 8)
+			.font(fontSize)
+			.foregroundColor(foreGround)
+			.padding(.bottom, bottomPadding)
 	  }
    }
 }
