@@ -20,7 +20,7 @@ final class DailyHealthEntry {
    var ketones: Double?
    var bloodPressure: String?
    var weight: Double?
-   var sleepHours: Double?
+   var sleepTime: String?
    var stressLevel: Int?
    var walkedAM: Bool = false
    var walkedPM: Bool = false
@@ -42,7 +42,7 @@ final class DailyHealthEntry {
 	  ketones: Double? = nil,
 	  bloodPressure: String? = nil,
 	  weight: Double? = nil,
-	  sleepHours: Double? = nil,
+	  sleepTime: String? = nil,
 	  stressLevel: Int? = nil,
 	  walkedAM: Bool = false,
 	  walkedPM: Bool = false,
@@ -60,7 +60,7 @@ final class DailyHealthEntry {
 	  self.ketones = ketones
 	  self.bloodPressure = bloodPressure
 	  self.weight = weight
-	  self.sleepHours = sleepHours
+	  self.sleepTime = sleepTime
 	  self.stressLevel = stressLevel
 	  self.walkedAM = walkedAM
 	  self.walkedPM = walkedPM

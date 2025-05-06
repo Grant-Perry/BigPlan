@@ -1,12 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
-    <key>NSHealthShareUsageDescription</key>
-    <string>BigPlan needs access to your step count to automatically track your daily activity.</string>
-</dict>
+   <dict>
+	  <key>ITSAppUsesNonExemptEncryption</key>
+	  <string>no</string>
+	  <key>UIBackgroundModes</key>
+	  <array>
+		 <string>remote-notification</string>
+	  </array>
+	  <key>NSHealthShareUsageDescription</key>
+	  <string>BigPlan needs access to your step count to automatically track your daily activity.</string>
+	  <!-- ADD: HealthKit Update Usage Description -->
+	  <key>NSHealthUpdateUsageDescription</key>
+	  <string>BigPlan needs permission to save health data like step count or workout information to Apple Health.</string>
+	  <!-- Add these keys -->
+	  <key>NSLocationWhenInUseUsageDescription</key>
+	  <string>BigPlan needs your location to fetch local weather information.</string>
+	  <key>NSLocationUsageDescription</key>
+	  <string>BigPlan uses your location to provide accurate weather information.</string>
+	  <key>WeatherKitUsageDescription</key>
+	  <string>BigPlan uses WeatherKit to provide current weather information in your notes.</string>
+   </dict>
 </plist>

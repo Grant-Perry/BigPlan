@@ -36,27 +36,8 @@ struct DailyListView: View {
 				  description: Text("Tap the + tab to add your first entry")
 			   )
 			} else {
-			   List {
-				  ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-					 EntryRowView(entry: entry)
-						.listRowBackground(
-						   index % 2 == 0 ?
-						   Color(.systemBackground) :
-							  Color(.secondarySystemBackground)
-						)
-						.contentShape(Rectangle())
-						.onTapGesture {
-						   selectedEntry = entry
-						}
-				  }
-				  .onDelete { indexSet in
-					 if let index = indexSet.first {
-						entryToDelete = entries[index]
-						showDeleteConfirmation = true
-					 }
-				  }
-			   }
-			   .listStyle(.plain)
+			   // Use the extracted computed property here
+			   entryList
 			}
 		 }
 		 .navigationTitle("Health History")
@@ -80,8 +61,7 @@ struct DailyListView: View {
 			if showUndoToast {
 			   UndoToastView(
 				  showToast: $showUndoToast,
-				  recentlyDeletedEntry: $recentlyDeletedEntry,
-				  modelContext: modelContext
+				  recentlyDeletedEntry: $recentlyDeletedEntry
 			   )
 			}
 		 }
@@ -90,21 +70,30 @@ struct DailyListView: View {
 	  }
    }
 
-   private func verifyDataStore() {
-	  do {
-		 let descriptor = FetchDescriptor<DailyHealthEntry>()
-		 let fetchedEntries = try modelContext.fetch(descriptor)
-		 logger.info("📋 DailyListView verification - Found \(fetchedEntries.count) entries")
-
-		 fetchedEntries.forEach { entry in
-			logger.info("🔍 Entry found - ID: \(entry.id) Date: \(entry.date) Glucose: \(entry.glucose ?? 0)")
+   // ADD: Computed property for the List view
+   @ViewBuilder
+   private var entryList: some View {
+	  List {
+		 ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+			EntryRowView(entry: entry)
+			   .listRowBackground(
+				  index % 2 == 0 ?
+				  Color(.systemBackground) :
+					 Color(.secondarySystemBackground)
+			   )
+			   .contentShape(Rectangle())
+			   .onTapGesture {
+				  selectedEntry = entry
+			   }
 		 }
-
-		 // Also log our @Query results
-		 logger.info("🔄 @Query entries count: \(entries.count)")
-	  } catch {
-		 logger.error("❌ Failed to verify data store: \(error.localizedDescription)")
+		 .onDelete { indexSet in
+			if let index = indexSet.first {
+			   entryToDelete = entries[index]
+			   showDeleteConfirmation = true
+			}
+		 }
 	  }
+	  .listStyle(.plain)
    }
 }
 
@@ -121,160 +110,117 @@ private struct EntryRowView: View {
 
    var body: some View {
 	  VStack(alignment: .leading, spacing: 8) {
+		 // Date and Activity Icons
 		 HStack {
 			Text(entry.date.formatted(date: .abbreviated, time: .omitted))
-			   .font(.headline)
+			   .font(.title3)
 			   .lineLimit(1)
 			   .minimumScaleFactor(0.75)
 			Spacer()
 			HStack(spacing: 8) {
 			   if entry.wentToGym {
-				  Image(systemName: "dumbbell.fill")
+				  Image(systemName: "figure.strengthtraining.traditional")
 					 .foregroundColor(.blue)
+					 .imageScale(.small)
 			   }
 			   if entry.walkedAM || entry.walkedPM {
 				  Image(systemName: "figure.walk")
 					 .foregroundColor(.green)
+					 .imageScale(.small)
 			   }
 			}
 		 }
 
+		 // First Row of Metrics
 		 HStack(spacing: 12) {
-			Group {
-			   if let glucose = entry.glucose {
-				  MetricView(
-					 value: numberFormatter.string(from: NSNumber(value: glucose)) ?? "0",
-					 unit: "mg/dL",
-					 icon: "drop.fill",
-					 color: .red
-				  )
+			if let glucose = entry.glucose {
+			   HStack(spacing: 4) {
+				  Image(systemName: "drop.fill")
+					 .foregroundColor(.red)
+					 .imageScale(.small)
+				  Text("\(numberFormatter.string(from: NSNumber(value: glucose)) ?? "0") mg/dL")
+					 .font(.title3)
+					 .lineLimit(1)
+					 .minimumScaleFactor(0.5)
+					 .foregroundColor(.red)
 			   }
-
-			   if let ketones = entry.ketones {
-				  MetricView(
-					 value: numberFormatter.string(from: NSNumber(value: ketones)) ?? "0",
-					 unit: "mmol",
-					 icon: "chart.line.uptrend.xyaxis",
-					 color: .purple
-				  )
-			   }
-
-			   if let bp = entry.bloodPressure {
-				  MetricView(
-					 value: bp,
-					 unit: "BP",
-					 icon: "heart.fill",
-					 color: .orange
-				  )
-			   }
+			   .frame(maxWidth: .infinity)
 			}
-			.frame(maxWidth: .infinity)
 
-			Group {
-			   if let steps = entry.steps {
-				  MetricView(
-					 value: numberFormatter.string(from: NSNumber(value: steps)) ?? "0",
-					 unit: "steps",
-					 icon: "shoe.fill",
-					 color: .green
-				  )
+			if let ketones = entry.ketones {
+			   HStack(spacing: 4) {
+				  Image(systemName: "flame.fill")
+					 .foregroundColor(.purple)
+					 .imageScale(.small)
+				  Text("\(numberFormatter.string(from: NSNumber(value: ketones)) ?? "0") mmol")
+					 .font(.title3)
+					 .lineLimit(1)
+					 .minimumScaleFactor(0.5)
+					 .foregroundColor(.purple)
 			   }
-
-			   if let weight = entry.weight {
-				  MetricView(
-					 value: numberFormatter.string(from: NSNumber(value: weight)) ?? "0",
-					 unit: "lbs",
-					 icon: "scalemass.fill",
-					 color: .blue
-				  )
-			   }
+			   .frame(maxWidth: .infinity)
 			}
-			.frame(maxWidth: .infinity)
+
+			if let bp = entry.bloodPressure {
+			   HStack(spacing: 4) {
+				  Image(systemName: "heart.fill")
+					 .foregroundColor(.orange)
+					 .imageScale(.small)
+				  Text(bp)
+					 .font(.title3)
+					 .lineLimit(1)
+					 .minimumScaleFactor(0.5)
+					 .foregroundColor(.orange)
+			   }
+			   .frame(maxWidth: .infinity)
+			}
 		 }
-		 .font(.subheadline)
+
+		 // Second Row of Metrics
+		 HStack(spacing: 12) {
+			if let steps = entry.steps {
+			   HStack(spacing: 4) {
+				  Image(systemName: "figure.walk")
+					 .foregroundColor(.green)
+					 .imageScale(.small)
+				  Text("\(numberFormatter.string(from: NSNumber(value: steps)) ?? "0") steps")
+					 .font(.title3)
+					 .lineLimit(1)
+					 .minimumScaleFactor(0.5)
+					 .foregroundColor(.green)
+			   }
+			   .frame(maxWidth: .infinity)
+			}
+
+			if let weight = entry.weight {
+			   HStack(spacing: 4) {
+				  Image(systemName: "scalemass.fill")
+					 .foregroundColor(.blue)
+					 .imageScale(.small)
+				  Text("\(numberFormatter.string(from: NSNumber(value: weight)) ?? "0") lbs")
+					 .font(.title3)
+					 .lineLimit(1)
+					 .minimumScaleFactor(0.5)
+					 .foregroundColor(.blue)
+			   }
+			   .frame(maxWidth: .infinity)
+			}
+
+			if let sleepTime = entry.sleepTime {
+			   HStack(spacing: 4) {
+				  Image(systemName: "moon.zzz.fill")
+					 .foregroundColor(.indigo)
+					 .imageScale(.small)
+				  Text(sleepTime)
+					 .font(.title3)
+					 .lineLimit(1)
+					 .minimumScaleFactor(0.5)
+					 .foregroundColor(.indigo)
+			   }
+			   .frame(maxWidth: .infinity)
+			}
+		 }
 	  }
 	  .padding(.vertical, 8)
    }
 }
-
-// MARK: - Metric View
-private struct MetricView: View {
-   let value: String
-   let unit: String
-   let icon: String
-   let color: Color
-
-   var body: some View {
-	  HStack(spacing: 4) {
-		 Image(systemName: icon)
-			.foregroundColor(color)
-			.frame(width: 20)
-
-		 VStack(alignment: .leading, spacing: 2) {
-			Text(value)
-			   .fontWeight(.medium)
-			   .lineLimit(1)
-			   .minimumScaleFactor(0.5)
-			Text(unit)
-			   .font(.caption2)
-			   .foregroundColor(.secondary)
-			   .lineLimit(1)
-			   .minimumScaleFactor(0.5)
-		 }
-		 .frame(minWidth: 50)
-	  }
-	  .frame(maxWidth: .infinity, alignment: .leading)
-   }
-}
-
-// MARK: - Undo Toast View
-private struct UndoToastView: View {
-   @Binding var showToast: Bool
-   @Binding var recentlyDeletedEntry: DailyHealthEntry?
-   let modelContext: ModelContext
-
-   var body: some View {
-	  VStack {
-		 Spacer()
-		 HStack {
-			Text("Entry deleted")
-			   .foregroundColor(.white)
-			Spacer()
-			Button("Undo") {
-			   if let entry = recentlyDeletedEntry {
-				  modelContext.insert(entry)
-				  recentlyDeletedEntry = nil
-			   }
-			   showToast = false
-			}
-			.foregroundColor(.white)
-			.fontWeight(.medium)
-		 }
-		 .padding()
-		 .background(Color.black.opacity(0.8))
-		 .cornerRadius(12)
-		 .padding()
-	  }
-	  .transition(.move(edge: .bottom).combined(with: .opacity))
-	  .animation(.easeInOut, value: showToast)
-   }
-}
-
-//#Preview {
-//   let container = try! ModelContainer(for: DailyHealthEntry.self)
-//   let context = ModelContext(container)
-//
-//   // Add some sample data
-//   let entry1 = DailyHealthEntry(
-//	  glucose: 120,
-//	  ketones: 1.5,
-//	  bloodPressure: "120/80",
-//	  steps: 10000,
-//	  wentToGym: true,
-//	  walkedAM: true
-//   )
-//   context.insert(entry1)
-//
-//   return DailyListView(selectedTab: .constant(0))
-//	  .modelContainer(container)
-//}
