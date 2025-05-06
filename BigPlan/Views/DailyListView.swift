@@ -113,7 +113,7 @@ private struct EntryRowView: View {
 		 // Date and Activity Icons
 		 HStack {
 			Text(entry.date.formatted(date: .abbreviated, time: .omitted))
-			   .font(.title3)
+			   .font(.title2)
 			   .lineLimit(1)
 			   .minimumScaleFactor(0.75)
 			Spacer()

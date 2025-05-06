@@ -13,6 +13,11 @@ struct ReadingsView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
    @State private var systolic: String = ""
    @State private var diastolic: String = ""
+   @FocusState private var focusedField: BloodPressureField?
+
+   private enum BloodPressureField {
+	  case systolic, diastolic
+   }
 
    var body: some View {
 	  VStack(alignment: .leading, spacing: 20) {
@@ -49,6 +54,14 @@ struct ReadingsView: View {
 				  .keyboardType(.numberPad)
 				  .multilineTextAlignment(.trailing)
 				  .frame(width: 50)
+				  .focused($focusedField, equals: .systolic)
+				  .onChange(of: systolic) { _, newValue in
+					 if newValue.count >= 3 {
+						systolic = String(newValue.prefix(3))
+						focusedField = .diastolic
+					 }
+					 updateBloodPressure()
+				  }
 			   Text("/")
 			   TextField("", text: $diastolic)
 				  .placeholder(when: diastolic.isEmpty) {
@@ -57,6 +70,13 @@ struct ReadingsView: View {
 				  .keyboardType(.numberPad)
 				  .multilineTextAlignment(.trailing)
 				  .frame(width: 50)
+				  .focused($focusedField, equals: .diastolic)
+				  .onChange(of: diastolic) { _, newValue in
+					 if newValue.count >= 3 {
+						diastolic = String(newValue.prefix(3))
+					 }
+					 updateBloodPressure()
+				  }
 			}
 			Divider()
 
@@ -72,8 +92,6 @@ struct ReadingsView: View {
 		 .background(Color(.secondarySystemBackground))
 		 .cornerRadius(10)
 	  }
-	  .onChange(of: systolic) { updateBloodPressure() }
-	  .onChange(of: diastolic) { updateBloodPressure() }
 	  .onAppear { loadBloodPressure() }
    }
 
