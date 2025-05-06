@@ -103,6 +103,11 @@ struct DailyListView: View {
 private struct EntryRowView: View {
    let entry: DailyHealthEntry
 
+   // Add size properties
+   private let metricFontSize: CGFloat = 19  // Was .title3
+   private let metricIconSize: CGFloat = 17   // Was .small
+   private let dateFontSize: CGFloat = 25   // Keep date slightly larger
+
    private let numberFormatter: NumberFormatter = {
 	  let formatter = NumberFormatter()
 	  formatter.numberStyle = .decimal
@@ -115,7 +120,7 @@ private struct EntryRowView: View {
 		 // Date and Activity Icons
 		 HStack {
 			Text(entry.date.formatted(date: .abbreviated, time: .omitted))
-			   .font(.title2)
+			   .font(.system(size: dateFontSize))
 			   .lineLimit(1)
 			   .minimumScaleFactor(0.75)
 			Spacer()
@@ -123,12 +128,12 @@ private struct EntryRowView: View {
 			   if entry.wentToGym {
 				  Image(systemName: "figure.strengthtraining.traditional")
 					 .foregroundColor(.blue)
-					 .imageScale(.small)
+					 .font(.system(size: metricIconSize))
 			   }
 			   if entry.walkedAM || entry.walkedPM {
 				  Image(systemName: "figure.walk")
 					 .foregroundColor(.green)
-					 .imageScale(.small)
+					 .font(.system(size: metricIconSize))
 			   }
 			}
 		 }
@@ -139,9 +144,9 @@ private struct EntryRowView: View {
 			   HStack(spacing: 4) {
 				  Image(systemName: "drop.fill")
 					 .foregroundColor(.red)
-					 .imageScale(.small)
+					 .font(.system(size: metricIconSize))
 				  Text("\(numberFormatter.string(from: NSNumber(value: glucose)) ?? "0") mg/dL")
-					 .font(.title3)
+					 .font(.system(size: metricFontSize))
 					 .lineLimit(1)
 					 .minimumScaleFactor(0.5)
 					 .foregroundColor(.red)
@@ -153,9 +158,9 @@ private struct EntryRowView: View {
 			   HStack(spacing: 4) {
 				  Image(systemName: "flame.fill")
 					 .foregroundColor(.purple)
-					 .imageScale(.small)
+					 .font(.system(size: metricIconSize))
 				  Text("\(numberFormatter.string(from: NSNumber(value: ketones)) ?? "0") mmol")
-					 .font(.title3)
+					 .font(.system(size: metricFontSize))
 					 .lineLimit(1)
 					 .minimumScaleFactor(0.5)
 					 .foregroundColor(.purple)
@@ -167,9 +172,9 @@ private struct EntryRowView: View {
 			   HStack(spacing: 4) {
 				  Image(systemName: "heart.fill")
 					 .foregroundColor(.orange)
-					 .imageScale(.small)
+					 .font(.system(size: metricIconSize))
 				  Text(bp)
-					 .font(.title3)
+					 .font(.system(size: metricFontSize))
 					 .lineLimit(1)
 					 .minimumScaleFactor(0.5)
 					 .foregroundColor(.orange)
@@ -184,9 +189,9 @@ private struct EntryRowView: View {
 			   HStack(spacing: 4) {
 				  Image(systemName: "figure.walk")
 					 .foregroundColor(.green)
-					 .imageScale(.small)
+					 .font(.system(size: metricIconSize))
 				  Text("\(numberFormatter.string(from: NSNumber(value: steps)) ?? "0") steps")
-					 .font(.title3)
+					 .font(.system(size: metricFontSize))
 					 .lineLimit(1)
 					 .minimumScaleFactor(0.5)
 					 .foregroundColor(.green)
@@ -198,9 +203,9 @@ private struct EntryRowView: View {
 			   HStack(spacing: 4) {
 				  Image(systemName: "scalemass.fill")
 					 .foregroundColor(.blue)
-					 .imageScale(.small)
+					 .font(.system(size: metricIconSize))
 				  Text("\(numberFormatter.string(from: NSNumber(value: weight)) ?? "0") lbs")
-					 .font(.title3)
+					 .font(.system(size: metricFontSize))
 					 .lineLimit(1)
 					 .minimumScaleFactor(0.5)
 					 .foregroundColor(.blue)
@@ -212,9 +217,9 @@ private struct EntryRowView: View {
 			   HStack(spacing: 4) {
 				  Image(systemName: "moon.zzz.fill")
 					 .foregroundColor(.indigo)
-					 .imageScale(.small)
+					 .font(.system(size: metricIconSize))
 				  Text(sleepTime)
-					 .font(.title3)
+					 .font(.system(size: metricFontSize))
 					 .lineLimit(1)
 					 .minimumScaleFactor(0.5)
 					 .foregroundColor(.indigo)
@@ -225,4 +230,56 @@ private struct EntryRowView: View {
 	  }
 	  .padding(.vertical, 8)
    }
+}
+
+#Preview {
+   let config = ModelConfiguration(isStoredInMemoryOnly: true)
+   let container = try! ModelContainer(for: DailyHealthEntry.self, configurations: config)
+
+   // Add some sample data
+   let context = ModelContext(container)
+   let sampleEntry1 = DailyHealthEntry(
+	  date: .now,
+	  wakeTime: .now,
+	  glucose: 95.0,
+	  ketones: 1.2,
+	  bloodPressure: "120/80",
+	  weight: 185.5,
+	  sleepTime: "8h",
+	  stressLevel: 2,
+	  walkedAM: true,
+	  walkedPM: false,
+	  firstMealTime: .now,
+	  lastMealTime: .now.addingTimeInterval(36000),
+	  steps: 8500,
+	  wentToGym: true,
+	  rlt: "15min",
+	  weatherData: "Sunny, 72°F",
+	  notes: "Great day!"
+   )
+   context.insert(sampleEntry1)
+
+   let sampleEntry2 = DailyHealthEntry(
+	  date: Calendar.current.date(byAdding: .day, value: -1, to: .now)!,
+	  wakeTime: .now,
+	  glucose: 98.0,
+	  ketones: 0.8,
+	  bloodPressure: "118/78",
+	  weight: 186.0,
+	  sleepTime: "7.5h",
+	  stressLevel: 3,
+	  walkedAM: true,
+	  walkedPM: true,
+	  firstMealTime: .now,
+	  lastMealTime: .now.addingTimeInterval(32400),
+	  steps: 10200,
+	  wentToGym: false,
+	  rlt: "20min",
+	  weatherData: "Cloudy, 68°F",
+	  notes: "Decent day"
+   )
+   context.insert(sampleEntry2)
+
+   return DailyListView(selectedTab: .constant(0))
+	  .modelContainer(container)
 }

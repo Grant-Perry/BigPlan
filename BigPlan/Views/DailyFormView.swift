@@ -17,6 +17,19 @@ struct DailyFormView: View {
    @Environment(\.modelContext) private var modelContext
    @StateObject var bigPlanViewModel: BigPlanViewModel
    @Environment(\.dismiss) private var dismiss
+   @State private var showingDismissAlert = false
+
+   private func handleDismiss() {
+	  if bigPlanViewModel.hasUnsavedChanges {
+		 showingDismissAlert = true
+	  } else {
+		 if bigPlanViewModel.isEditing {
+			dismiss()
+		 } else {
+			selectedTab = 0
+		 }
+	  }
+   }
 
    var body: some View {
 	  NavigationStack {
@@ -47,16 +60,29 @@ struct DailyFormView: View {
 			   .padding(.horizontal)
 
 			   Spacer(minLength: 20)
-			   // FIX: Use the full type name
 			   AppConstants.VersionFooter()
 			}
 		 }
+		 .onAppear {
+			bigPlanViewModel.hasUnsavedChanges = false
+		 }
 		 .scrollDismissesKeyboard(.immediately)
 		 .navigationBarTitleDisplayMode(.inline)
+		 .navigationBarBackButtonHidden(true)
 		 .toolbar {
+			ToolbarItem(placement: .navigationBarLeading) {
+			   Button {
+				  handleDismiss()
+			   } label: {
+				  HStack(spacing: 5) {
+					 Image(systemName: "chevron.left")
+					 Text("Health History")
+				  }
+			   }
+			}
 			ToolbarItem(placement: .navigationBarTrailing) {
 			   Button("Done") {
-				  bigPlanViewModel.saveEntry() // Add this line to save
+				  bigPlanViewModel.saveEntry()
 				  if bigPlanViewModel.isEditing {
 					 dismiss()
 				  } else {
@@ -64,6 +90,26 @@ struct DailyFormView: View {
 				  }
 			   }
 			}
+		 }
+		 .alert("Save Changes?", isPresented: $showingDismissAlert) {
+			Button("Don't Save", role: .destructive) {
+			   if bigPlanViewModel.isEditing {
+				  dismiss()
+			   } else {
+				  selectedTab = 0
+			   }
+			}
+			Button("Save") {
+			   bigPlanViewModel.saveEntry()
+			   if bigPlanViewModel.isEditing {
+				  dismiss()
+			   } else {
+				  selectedTab = 0
+			   }
+			}
+			Button("Cancel", role: .cancel) { }
+		 } message: {
+			Text("Would you like to save your changes before exiting?")
 		 }
 	  }
    }

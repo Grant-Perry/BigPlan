@@ -36,25 +36,67 @@ class BigPlanViewModel: ObservableObject {
    var isWeatherLoaded: Bool = false
    var isLoadingWeather: Bool = false
 
-   // MARK: - Form State Properties
+   // ADD: Track if any changes were made since last save
+   private var _hasUnsavedChanges: Bool = false
 
-   var date: Date = .now
-   var wakeTime: Date = .now
-   var glucose: Double? = nil
-   var ketones: Double? = nil
-   var bloodPressure: String? = nil
-   var weight: Double? = nil
-   var sleepTime: String? = nil
-   var stressLevel: Int? = nil
-   var walkedAM: Bool = false
-   var walkedPM: Bool = false
-   var firstMealTime: Date? = nil
-   var lastMealTime: Date? = nil
-   var steps: Int? = nil
-   var wentToGym: Bool = false
-   var rlt: String? = nil
-   var weatherData: String? = nil
-   var notes: String? = nil
+   var hasUnsavedChanges: Bool {
+	  get { _hasUnsavedChanges }
+	  set { _hasUnsavedChanges = newValue }
+   }
+
+   // MARK: - Form State Properties with Change Tracking
+
+   var date: Date = .now {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var wakeTime: Date = .now {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var glucose: Double? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var ketones: Double? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var bloodPressure: String? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var weight: Double? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var sleepTime: String? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var stressLevel: Int? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var walkedAM: Bool = false {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var walkedPM: Bool = false {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var firstMealTime: Date? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var lastMealTime: Date? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var steps: Int? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var wentToGym: Bool = false {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var rlt: String? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var weatherData: String? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
+   var notes: String? = nil {
+	  didSet { _hasUnsavedChanges = true }
+   }
 
    // MARK: - Initialization
 
@@ -65,6 +107,7 @@ class BigPlanViewModel: ObservableObject {
    init(context: ModelContext, existingEntry: DailyHealthEntry? = nil) {
 	  self.context = context
 	  self.existingEntry = existingEntry
+	  _hasUnsavedChanges = false  // Start with no unsaved changes
 
 	  if let entry = existingEntry {
 		 self.date = entry.date
@@ -153,6 +196,7 @@ class BigPlanViewModel: ObservableObject {
 		 let descriptor = FetchDescriptor<DailyHealthEntry>()
 		 let savedEntries = try context.fetch(descriptor)
 		 logger.info("📊 Total entries after save: \(savedEntries.count)")
+		 _hasUnsavedChanges = false  // Reset after successful save
 	  } catch {
 		 logger.error("❌ Save failed: \(error.localizedDescription)")
 	  }
@@ -197,7 +241,7 @@ class BigPlanViewModel: ObservableObject {
 
    func fetchAndAppendWeather() async {
 	  // If we're not editing today's entry and we've already loaded weather, skip
-	  guard !isWeatherLoaded || isEditing || Calendar.current.isDateInToday(date) else { return }
+	  guard !isWeatherLoaded || existingEntry != nil || Calendar.current.isDateInToday(date) else { return }
 
 	  isLoadingWeather = true
 	  defer { isLoadingWeather = false }

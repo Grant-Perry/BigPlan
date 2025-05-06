@@ -20,5 +20,9 @@
 	  <string>BigPlan uses your location to provide accurate weather information.</string>
 	  <key>WeatherKitUsageDescription</key>
 	  <string>BigPlan uses WeatherKit to provide current weather information in your notes.</string>
+	  <key>UIAppFonts</key>
+	  <array>
+		 <string>LondrinaShadow-Regular.ttf</string>
+	  </array>
    </dict>
 </plist>
