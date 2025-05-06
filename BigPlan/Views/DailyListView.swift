@@ -50,9 +50,11 @@ struct DailyListView: View {
 		 .alert("Delete this entry?", isPresented: $showDeleteConfirmation) {
 			Button("Delete", role: .destructive) {
 			   if let entry = entryToDelete {
-				  modelContext.delete(entry)
-				  recentlyDeletedEntry = entry
-				  showUndoToast = true
+				  withAnimation {
+					 modelContext.delete(entry)
+					 try? modelContext.save()
+					 entryToDelete = nil
+				  }
 			   }
 			}
 			Button("Cancel", role: .cancel) { }

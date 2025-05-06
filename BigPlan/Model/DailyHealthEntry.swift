@@ -32,6 +32,8 @@ final class DailyHealthEntry {
    var wentToGym: Bool = false
    var rlt: String?
 
+   var weatherData: String?
+
    @Attribute(.externalStorage) var notes: String?
 
    init(
@@ -51,6 +53,7 @@ final class DailyHealthEntry {
 	  steps: Int? = nil,
 	  wentToGym: Bool = false,
 	  rlt: String? = nil,
+	  weatherData: String? = nil,
 	  notes: String? = nil
    ) {
 	  self.id = id
@@ -69,6 +72,7 @@ final class DailyHealthEntry {
 	  self.steps = steps
 	  self.wentToGym = wentToGym
 	  self.rlt = rlt
+	  self.weatherData = weatherData
 	  self.notes = notes
    }
 }
