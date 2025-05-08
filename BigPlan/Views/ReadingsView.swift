@@ -93,21 +93,38 @@ struct ReadingsView: View {
 		 .cornerRadius(10)
 	  }
 	  .onAppear { loadBloodPressure() }
+	  .onChange(of: bigPlanViewModel.bloodPressure) { _, _ in
+		 loadBloodPressure()
+	  }
    }
 
    private func loadBloodPressure() {
-	  if let bp = bigPlanViewModel.bloodPressure?.split(separator: "/") {
-		 systolic = String(bp[0])
-		 if bp.count > 1 {
-			diastolic = String(bp[1])
+	  if let bpString = bigPlanViewModel.bloodPressure, bpString != "\(systolic)/\(diastolic)" {
+		 let bpComponents = bpString.split(separator: "/")
+		 if !bpComponents.isEmpty {
+			systolic = String(bpComponents[0])
+			if bpComponents.count > 1 {
+			   diastolic = String(bpComponents[1])
+			} else {
+			   diastolic = ""
+			}
+		 } else {
+			systolic = ""
+			diastolic = ""
 		 }
+	  } else if bigPlanViewModel.bloodPressure == nil && (!systolic.isEmpty || !diastolic.isEmpty) {
+		 systolic = ""
+		 diastolic = ""
 	  }
    }
 
    private func updateBloodPressure() {
 	  if !systolic.isEmpty && !diastolic.isEmpty {
 		 bigPlanViewModel.bloodPressure = "\(systolic)/\(diastolic)"
-	  } else {
+	  } else if !systolic.isEmpty && diastolic.isEmpty {
+		 bigPlanViewModel.bloodPressure = nil
+	  }
+	  else {
 		 bigPlanViewModel.bloodPressure = nil
 	  }
    }

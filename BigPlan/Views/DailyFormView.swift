@@ -19,15 +19,20 @@ struct DailyFormView: View {
    @Environment(\.dismiss) private var dismiss
    @State private var showingDismissAlert = false
 
+   private func completeAction() {
+	  // This function will now handle both scenarios:
+	  // 1. If presented modally/navigation, dismiss will work.
+	  // 2. If embedded in TabView, selectedTab will change.
+	  // One of them will be a no-op depending on context, which is fine.
+	  dismiss()
+	  selectedTab = 0
+   }
+
    private func handleDismiss() {
 	  if bigPlanViewModel.hasUnsavedChanges {
 		 showingDismissAlert = true
 	  } else {
-		 if bigPlanViewModel.isEditing {
-			dismiss()
-		 } else {
-			selectedTab = 0
-		 }
+		 completeAction()
 	  }
    }
 
@@ -40,14 +45,20 @@ struct DailyFormView: View {
 					 Text(bigPlanViewModel.isEditing ? "Edit Entry" : "New Entry")
 						.font(.title)
 						.fontWeight(.semibold)
-					 Text(bigPlanViewModel.date.formatted(date: .abbreviated, time: .omitted))
-						.font(.subheadline)
-						.foregroundColor(.gray)
+					 DatePicker(
+						"Entry Date",
+						selection: $bigPlanViewModel.date,
+						displayedComponents: .date
+					 )
+					 .labelsHidden()
+					 .font(.subheadline)
+					 .foregroundColor(.gray)
 				  }
 				  .padding(.horizontal)
 
 				  VStack(spacing: 24) {
-					 DateTimeView(bigPlanViewModel: bigPlanViewModel)
+
+					 // DateTimeView(bigPlanViewModel: bigPlanViewModel)
 					 ReadingsView(bigPlanViewModel: bigPlanViewModel)
 					 SleepStressView(bigPlanViewModel: bigPlanViewModel)
 					 ActivityView(bigPlanViewModel: bigPlanViewModel)
@@ -111,30 +122,18 @@ struct DailyFormView: View {
 			ToolbarItem(placement: .navigationBarTrailing) {
 			   Button("Done") {
 				  bigPlanViewModel.saveEntry()
-				  if bigPlanViewModel.isEditing {
-					 dismiss()
-				  } else {
-					 selectedTab = 0
-				  }
+				  completeAction()
 			   }
 			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
 			}
 		 }
 		 .alert("Save Changes?", isPresented: $showingDismissAlert) {
 			Button("Don't Save", role: .destructive) {
-			   if bigPlanViewModel.isEditing {
-				  dismiss()
-			   } else {
-				  selectedTab = 0
-			   }
+			   completeAction()
 			}
 			Button("Save") {
 			   bigPlanViewModel.saveEntry()
-			   if bigPlanViewModel.isEditing {
-				  dismiss()
-			   } else {
-				  selectedTab = 0
-			   }
+			   completeAction()
 			}
 			Button("Cancel", role: .cancel) { }
 		 } message: {

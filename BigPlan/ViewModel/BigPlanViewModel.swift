@@ -36,7 +36,6 @@ class BigPlanViewModel: ObservableObject {
    var isWeatherLoaded: Bool = false
    var isLoadingWeather: Bool = false
 
-   // ADD: Track if any changes were made since last save
    private var _hasUnsavedChanges: Bool = false
 
    var hasUnsavedChanges: Bool {
@@ -46,6 +45,8 @@ class BigPlanViewModel: ObservableObject {
 
    var isSaving = false
    var isInitializing = false
+
+   let formInstanceId: UUID
 
    // MARK: - Form State Properties
    var date: Date = .now
@@ -113,10 +114,14 @@ class BigPlanViewModel: ObservableObject {
    init(context: ModelContext, existingEntry: DailyHealthEntry? = nil) {
 	  self.context = context
 	  self.existingEntry = existingEntry
+	  self.formInstanceId = existingEntry?.id ?? UUID() // Use existing entry's ID or a new UUID for new entries
+
+	  // Original logging for debugging:
+	  logger.debug("BigPlanViewModel initialized. Has existingEntry: \(existingEntry != nil, privacy: .public), ID: \(existingEntry?.id.uuidString ?? "N/A", privacy: .public), FormInstanceID: \(self.formInstanceId.uuidString, privacy: .public)")
+
 
 	  Task {
 		 isInitializing = true
-		 // ... existing initialization code ...
 		 if let entry = existingEntry {
 			self.date = entry.date
 			self.wakeTime = entry.wakeTime
@@ -135,13 +140,20 @@ class BigPlanViewModel: ObservableObject {
 			self.rlt = entry.rlt
 			self.weatherData = entry.weatherData
 			self.notes = entry.notes
+			logger.debug("Populating VM from existingEntry ID: \(entry.id.uuidString, privacy: .public)")
+		 } else {
+			logger.debug("Populating VM for a new entry.")
 		 }
+
 
 		 healthKitAuthorized = await HealthKitManager.shared.requestAuthorization()
 		 if healthKitAuthorized && existingEntry == nil {
 			await fetchTodaySteps()
 		 }
 		 if existingEntry == nil || Calendar.current.isDateInToday(date) {
+			// Ensure weather is only fetched if not already loaded recently for this entry,
+			// or if it's a new entry for today.
+			// The current weatherData check might be insufficient.
 			await fetchAndAppendWeather()
 		 }
 		 isInitializing = false
@@ -157,29 +169,34 @@ class BigPlanViewModel: ObservableObject {
 		 defer { isSaving = false }
 
 		 do {
-			let entry: DailyHealthEntry
+			let entryToSave: DailyHealthEntry // Use a clear name
 
-			if let existingEntry = self.existingEntry {
-			   entry = existingEntry
-			   entry.date = date
-			   entry.wakeTime = wakeTime
-			   entry.glucose = glucose
-			   entry.ketones = ketones
-			   entry.bloodPressure = bloodPressure
-			   entry.weight = weight
-			   entry.sleepTime = sleepTime
-			   entry.stressLevel = stressLevel
-			   entry.walkedAM = walkedAM
-			   entry.walkedPM = walkedPM
-			   entry.firstMealTime = firstMealTime
-			   entry.lastMealTime = lastMealTime
-			   entry.steps = steps
-			   entry.wentToGym = wentToGym
-			   entry.rlt = rlt
-			   entry.weatherData = weatherData
-			   entry.notes = notes
+			if let currentEntry = self.existingEntry {
+			   entryToSave = currentEntry
+			   // Update properties of 'entryToSave' (which is self.existingEntry)
+			   entryToSave.date = date
+			   entryToSave.wakeTime = wakeTime
+			   entryToSave.glucose = glucose
+			   entryToSave.ketones = ketones
+			   entryToSave.bloodPressure = bloodPressure
+			   entryToSave.weight = weight
+			   entryToSave.sleepTime = sleepTime
+			   entryToSave.stressLevel = stressLevel
+			   entryToSave.walkedAM = walkedAM
+			   entryToSave.walkedPM = walkedPM
+			   entryToSave.firstMealTime = firstMealTime
+			   entryToSave.lastMealTime = lastMealTime
+			   entryToSave.steps = steps
+			   entryToSave.wentToGym = wentToGym
+			   entryToSave.rlt = rlt
+			   // Only update weather if it was freshly fetched by this VM instance
+			   // This check might need refinement based on how/when weatherData is populated.
+			   // If weatherData is nil-ed out on form load and re-fetched, this is fine.
+			   entryToSave.weatherData = weatherData
+			   entryToSave.notes = notes
 			} else {
-			   entry = DailyHealthEntry(
+			   // This is the path for a NEW entry
+			   entryToSave = DailyHealthEntry(
 				  date: date,
 				  wakeTime: wakeTime,
 				  glucose: glucose,
@@ -198,10 +215,11 @@ class BigPlanViewModel: ObservableObject {
 				  weatherData: weatherData,
 				  notes: notes
 			   )
-			   context.insert(entry)
+			   context.insert(entryToSave)
+			   self.existingEntry = entryToSave
 			}
 
-			logger.info("💾 Attempting to save entry: \(entry.id)")
+			logger.info("💾 Attempting to save entry: \(entryToSave.id)")
 			try context.save()
 			logger.info("✅ Save successful")
 
@@ -234,6 +252,7 @@ class BigPlanViewModel: ObservableObject {
 			context.delete(entry)
 			try context.save()
 			logger.info("✅ Current entry deleted and saved: \(entry.id)")
+			self.existingEntry = nil // Clear it after deletion
 		 } catch {
 			logger.error("❌ Failed to delete current entry: \(error.localizedDescription)")
 		 }
@@ -248,37 +267,53 @@ class BigPlanViewModel: ObservableObject {
    }
 
    func fetchTodaySteps() async {
-	  await HealthKitManager.shared.fetchTodaySteps()
-	  self.steps = HealthKitManager.shared.todaySteps
+	  // Ensure steps are only fetched if there isn't an existing value or if it's appropriate to override
+	  // (e.g., for a new entry or if the date is today and no steps are logged yet)
+	  if self.steps == nil || (Calendar.current.isDateInToday(self.date) && self.existingEntry == nil) {
+		 await HealthKitManager.shared.fetchTodaySteps()
+
+		 let currentHKSteps = HealthKitManager.shared.todaySteps
+		 if currentHKSteps > 0 {
+			self.steps = currentHKSteps
+		 } else {
+			if self.steps == nil {
+			   self.steps = 0
+			}
+		 }
+	  }
    }
 
    func fetchAndAppendWeather() async {
-	  // If we're not editing today's entry and we've already loaded weather, skip
-	  guard !isWeatherLoaded || existingEntry != nil || Calendar.current.isDateInToday(date) else { return }
+	  // If we're editing an entry not for today and it already has weather, don't overwrite.
+	  if let existing = existingEntry, !Calendar.current.isDateInToday(existing.date), existing.weatherData != nil {
+		 return
+	  }
+	  // If it's a new entry, or today's entry, or an old entry without weather, try to fetch.
+	  // Also prevent re-fetching if weather is already loaded in this VM session and it's not a new day.
+	  guard !isWeatherLoaded || existingEntry == nil || Calendar.current.isDateInToday(date) else { return }
+
 
 	  isLoadingWeather = true
 	  defer { isLoadingWeather = false }
 
-	  // If location is already available, use it immediately
 	  if let location = LocationManager.shared.location {
 		 await WeatherKitManager.shared.fetchWeather(for: location)
 		 if let weatherString = WeatherKitManager.shared.weatherData {
 			self.weatherData = weatherString
-			isWeatherLoaded = true
+			isWeatherLoaded = true // Mark that weather has been loaded in this VM session
 
-			// Save immediately after updating weather
-			saveEntry()
+			// saveEntry()
 			return
 		 }
 	  }
 
-	  // Only request location if we need it
 	  if LocationManager.shared.authorizationStatus == .notDetermined {
 		 LocationManager.shared.requestAuthorization()
 	  }
 
 	  LocationManager.shared.startUpdatingLocation()
    }
+
 
    /// Verifies the data store content for debugging purposes.
    func verifyDataStore() {
