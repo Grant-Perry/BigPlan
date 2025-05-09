@@ -2,47 +2,77 @@
 //   BigPlan
 //
 //   Created by: Gp. on 5/5/25 at 7:39 PM
-//     Modified: 
+//     Modified:
 //
-//  Copyright © 2025 Delicious Studios, LLC. - Grant Perry
-//
+//  Copyright Delicious Studios, LLC. - Grant Perry
 
 import SwiftUI
 
 struct MealsView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
+   @State private var focusedField: String?
 
    var body: some View {
-	  VStack(alignment: .leading, spacing: 20) {
+	  VStack(alignment: .leading, spacing: 18) {
 		 Text("MEALS")
-			.font(.subheadline)
-			.foregroundColor(.gray)
+			.font(.system(size: 24, weight: .semibold))
+			.foregroundColor(.white.opacity(0.9))
+			.textCase(.uppercase)
 
-		 VStack(spacing: 16) {
+		 VStack(spacing: 18) {
+			// First Meal Time
 			HStack {
 			   Text("First Meal")
+				  .foregroundColor(focusedField == "firstMeal" ? .gpGreen : .gray.opacity(0.8))
+				  .font(.system(size: 23))
 			   Spacer()
 			   DatePicker("", selection: Binding(
 				  get: { bigPlanViewModel.firstMealTime ?? Date() },
-				  set: { bigPlanViewModel.firstMealTime = $0 }
+				  set: {
+					 bigPlanViewModel.firstMealTime = $0
+					 focusedField = "firstMeal"
+				  }
 			   ), displayedComponents: .hourAndMinute)
 			   .labelsHidden()
+			   .scaleEffect(1.1)
+			   .colorMultiply(focusedField == "firstMeal" ? .gpGreen : .white)
 			}
-			Divider()
+			.contentShape(Rectangle())
+			.formFieldStyle(icon: "sunrise.fill", hasFocus: focusedField == "firstMeal")
+			.onTapGesture {
+			   focusedField = "firstMeal"
+			}
 
+			// Last Meal Time
 			HStack {
 			   Text("Last Meal")
+				  .foregroundColor(focusedField == "lastMeal" ? .gpGreen : .gray.opacity(0.8))
+				  .font(.system(size: 23))
 			   Spacer()
 			   DatePicker("", selection: Binding(
 				  get: { bigPlanViewModel.lastMealTime ?? Date() },
-				  set: { bigPlanViewModel.lastMealTime = $0 }
+				  set: {
+					 bigPlanViewModel.lastMealTime = $0
+					 focusedField = "lastMeal"
+				  }
 			   ), displayedComponents: .hourAndMinute)
 			   .labelsHidden()
+			   .scaleEffect(1.1)
+			   .colorMultiply(focusedField == "lastMeal" ? .gpGreen : .white)
+			}
+			.contentShape(Rectangle())
+			.formFieldStyle(icon: "sunset.fill", hasFocus: focusedField == "lastMeal")
+			.onTapGesture {
+			   focusedField = "lastMeal"
 			}
 		 }
-		 .padding()
-		 .background(Color(.secondarySystemBackground))
-		 .cornerRadius(10)
 	  }
+	  .formSectionStyle()
+	  .contentShape(Rectangle())
+	  .onTapGesture {
+		 // Clear focus when tapping outside
+		 focusedField = nil
+	  }
+	  .animation(.none, value: focusedField) // Remove animation for instant focus
    }
 }

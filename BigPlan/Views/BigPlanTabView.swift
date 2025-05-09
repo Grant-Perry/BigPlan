@@ -14,6 +14,8 @@ struct BigPlanTabView: View {
 
    @State private var dailyFormViewId: UUID = UUID()
 
+   @Query private var allEntries: [DailyHealthEntry]
+
    var body: some View {
 	  TabView(selection: $selectedTab) {
 		 DailyListView(selectedTab: $selectedTab)
@@ -62,11 +64,15 @@ struct BigPlanTabView: View {
 			checkForTodaysEntry()
 		 }
 	  }
+	  .onChange(of: allEntries.count) { _, _ in
+		 logger.debug("Entries count changed. Re-checking for today's entry.")
+		 checkForTodaysEntry()
+	  }
    }
 
    private func initializeViewModelForTab1() {
-	  checkForTodaysEntry() // Ensures entryForToday and todayEntryExists are fresh
-	  let oldViewModelId = viewModel?.formInstanceId // Get ID before potentially creating new VM
+	  checkForTodaysEntry()
+	  let oldViewModelId = viewModel?.formInstanceId
 
 	  if let existingEntry = entryForToday {
 		 logger.debug("Today's entry FOUND (ID: \(existingEntry.id.uuidString, privacy: .public)). Creating/updating viewModel FOR EDITING.")
@@ -76,25 +82,18 @@ struct BigPlanTabView: View {
 		 viewModel = BigPlanViewModel(context: modelContext)
 	  }
 
-	  // If the effective content of the form changes (new vs edit, or different entry), change its ID
-	  // Ensure dailyFormViewId itself is checked against a default value if it implies "never set" rather than just comparing with a new UUID()
-	  // For simplicity, we use viewModel's formInstanceId. If viewModel is nil initially, then dailyFormViewId will be new.
 	  if oldViewModelId != viewModel?.formInstanceId || (viewModel != nil && dailyFormViewId != viewModel!.formInstanceId) {
-		 dailyFormViewId = viewModel?.formInstanceId ?? UUID() // Use the VM's new unique ID, or a new one if VM is somehow nil
+		 dailyFormViewId = viewModel?.formInstanceId ?? UUID()
 		 logger.debug("DailyFormView ID updated to: \(dailyFormViewId.uuidString, privacy: .public)")
 	  }
 
-	  // THIS IS THE CRITICAL LOG LINE THAT WAS CAUSING THE ERROR
 	  if let vm = viewModel {
-		 // CORRECTED LOGGING: Removed direct access to vm.existingEntry from this log statement.
-		 // We only use vm.isEditing (public) and vm.formInstanceId (public).
 		 logger.debug("ViewModel for Tab 1. isEditing: \(vm.isEditing, privacy: .public), VM_ID: \(vm.formInstanceId.uuidString, privacy: .public)")
 	  } else {
 		 logger.error("ViewModel is unexpectedly nil after initializeViewModelForTab1.")
 	  }
    }
 
-   // checkForTodaysEntry function follows, ensure it's correct.
    private func checkForTodaysEntry() {
 	  let calendar = Calendar.current
 	  let today = calendar.startOfDay(for: Date())
@@ -108,14 +107,14 @@ struct BigPlanTabView: View {
 	  do {
 		 let entriesForToday = try modelContext.fetch(descriptor)
 		 if let firstEntry = entriesForToday.first {
-			if entryForToday?.id != firstEntry.id {
-			   logger.debug("Found entry for today: \(firstEntry.id.uuidString, privacy: .public)")
+			if entryForToday?.id != firstEntry.id || entryForToday == nil {
+			   logger.debug("Found/Updated entry for today: ID \(firstEntry.id.uuidString, privacy: .public)")
 			}
 			entryForToday = firstEntry
 			todayEntryExists = true
 		 } else {
 			if entryForToday != nil {
-			   logger.debug("No entry found for today (was previously set).")
+			   logger.debug("No entry found for today (was previously set or just deleted). Resetting state.")
 			}
 			entryForToday = nil
 			todayEntryExists = false

@@ -4,13 +4,13 @@ import SwiftUI
 
 
 struct MainSplashView: View {
-
+   
    @State private var bounce = false
-
+   
    private var currentYear: Int {
 	  Calendar.current.component(.year, from: Date())
    }
-
+   
    var body: some View {
 	  GeometryReader { geo in
 		 ZStack {
@@ -21,7 +21,7 @@ struct MainSplashView: View {
 			   endPoint: .bottomTrailing
 			)
 			.ignoresSafeArea()
-
+			
 			// Bokeh layers
 			Group {
 			   BokehCircleView(color: .white, size: 180, blur: 25, xOffset: 60, yOffset: -90, animationSpeed: 4)
@@ -31,11 +31,11 @@ struct MainSplashView: View {
 			   BokehCircleView(color: .white, size: 100, blur: 20, xOffset: 100, yOffset: 150, animationSpeed: 6)
 			   BokehCircleView(color: .yellow, size: 120, blur: 30, xOffset: -120, yOffset: -80, animationSpeed: 6)
 			}
-
+			
 			// Content
 			VStack {
 			   Spacer()
-
+			   
 			   // Title
 			   Text("BigPlan")
 				  .font(.custom("LondrinaShadow-Regular", size: 100))
@@ -47,21 +47,22 @@ struct MainSplashView: View {
 						bounce = true
 					 }
 				  }
-
+			   
 			   Spacer()
-
+			   
 			   // Footer
 			   VStack(spacing: 10) {
 				  AppConstants.VersionFooter(foreGround: .white,
 											 fontSize: .system(size: 16),
 											 bottomPadding: 2.0)
-//				  .shadow(color: Color.gpBlue.opacity(0.8), radius: 10, x: 0, y: 5)
-
-				  Text("Gp. Delicious Studios - © \(String(currentYear))")
+				  //				  .shadow(color: Color.gpBlue.opacity(0.8), radius: 10, x: 0, y: 5)
+				  
+				  Text("Gp. Delicious Studios - \(String(currentYear))")
 					 .font(.system(size: 12, weight: .medium, design: .rounded))
 					 .shadow(color: .pink.opacity(0.8), radius: 10, x: 0, y: 5)
 			   }
-//			   .foregroundColor(.gpWhite)
+			   .frame(maxWidth: .infinity)
+			   //			   .foregroundColor(.gpWhite)
 			   .padding(.bottom, 10)
 			}
 		 }

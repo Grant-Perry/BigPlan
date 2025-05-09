@@ -13,47 +13,88 @@ struct SleepStressView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
    @State private var sleepHoursString: String = ""
    @State private var sleepMinutesString: String = ""
+   @FocusState private var focusedField: Field?
+   @State private var isStressPickerFocused: Bool = false
+
+   private enum Field {
+	  case hours, minutes
+   }
 
    var body: some View {
-	  VStack(alignment: .leading, spacing: 20) {
+	  VStack(alignment: .leading, spacing: 18) {
 		 Text("SLEEP & STRESS")
-			.font(.subheadline)
-			.foregroundColor(.gray)
+			.font(.system(size: 24, weight: .semibold))
+			.foregroundColor(.white.opacity(0.9))
+			.textCase(.uppercase)
 
-		 VStack(spacing: 16) {
+		 VStack(spacing: 18) {
+			// Sleep Time Field
 			HStack {
 			   Text("Sleep Time")
+				  .foregroundColor(focusedField != nil ? .gpGreen : .gray.opacity(0.8))
+				  .font(.system(size: 23))
 			   Spacer()
-			   TextField("H", text: $sleepHoursString)
-				  .keyboardType(.numberPad)
-				  .multilineTextAlignment(.trailing)
-				  .frame(width: 40)
-				  .onChange(of: sleepHoursString) { _, newValue in
-					 if let hours = Int(newValue), hours > 24 {
-						sleepHoursString = "24"
+			   HStack(spacing: 10) {
+				  TextField("", text: $sleepHoursString)
+					 .placeholder(when: sleepHoursString.isEmpty) {
+						Text("H")
+						   .foregroundColor(focusedField == .hours ? .gpGreen : .gray.opacity(0.3))
+						   .font(.system(size: 23))
 					 }
-					 if newValue.count > 2 {
-						sleepHoursString = String(newValue.prefix(2))
-					 }
-				  }
-			   Text(":")
-			   TextField("M", text: $sleepMinutesString)
-				  .keyboardType(.numberPad)
-				  .multilineTextAlignment(.trailing)
-				  .frame(width: 40)
-				  .onChange(of: sleepMinutesString) { _, newValue in
-					 if let minutes = Int(newValue), minutes > 59 {
-						sleepMinutesString = "59"
-					 }
-					 if newValue.count > 2 {
-						sleepMinutesString = String(newValue.prefix(2))
-					 }
-				  }
-			}
-			Divider()
+					 .keyboardType(.numberPad)
+					 .multilineTextAlignment(.trailing)
+					 .frame(width: 70)
+					 .focused($focusedField, equals: .hours)
+					 .font(.system(size: 23))
 
+				  Text(":")
+					 .foregroundColor(.gray.opacity(0.5))
+					 .font(.system(size: 23))
+
+				  TextField("", text: $sleepMinutesString)
+					 .placeholder(when: sleepMinutesString.isEmpty) {
+						Text("M")
+						   .foregroundColor(focusedField == .minutes ? .gpGreen : .gray.opacity(0.3))
+						   .font(.system(size: 23))
+					 }
+					 .keyboardType(.numberPad)
+					 .multilineTextAlignment(.trailing)
+					 .frame(width: 70)
+					 .focused($focusedField, equals: .minutes)
+					 .font(.system(size: 23))
+			   }
+			}
+			.contentShape(Rectangle())
+			.formFieldStyle(icon: "bed.double.fill", hasFocus: focusedField != nil)
+			.onTapGesture {
+			   if focusedField == nil {
+				  focusedField = .hours
+			   }
+			}
+			.onChange(of: sleepHoursString) { _, newValue in
+			   if let hours = Int(newValue), hours > 24 {
+				  sleepHoursString = "24"
+			   }
+			   if newValue.count > 2 {
+				  sleepHoursString = String(newValue.prefix(2))
+			   }
+			   updateViewModelSleepTime()
+			}
+			.onChange(of: sleepMinutesString) { _, newValue in
+			   if let minutes = Int(newValue), minutes > 59 {
+				  sleepMinutesString = "59"
+			   }
+			   if newValue.count > 2 {
+				  sleepMinutesString = String(newValue.prefix(2))
+			   }
+			   updateViewModelSleepTime()
+			}
+
+			// Stress Level Field
 			HStack {
 			   Text("Stress Level")
+				  .foregroundColor(isStressPickerFocused ? .gpGreen : .gray.opacity(0.8))
+				  .font(.system(size: 23))
 			   Spacer()
 			   Picker("", selection: Binding(
 				  get: {
@@ -71,22 +112,31 @@ struct SleepStressView: View {
 						case "High": bigPlanViewModel.stressLevel = 3
 						default: bigPlanViewModel.stressLevel = nil
 					 }
+					 isStressPickerFocused = true
 				  }
 			   )) {
 				  Text("").tag("")
 				  Text("Low").tag("Low")
+					 .font(.system(size: 23))
 				  Text("Medium").tag("Medium")
+					 .font(.system(size: 23))
 				  Text("High").tag("High")
+					 .font(.system(size: 23))
 			   }
 			   .labelsHidden()
+			   .scaleEffect(1.1)
+			}
+			.contentShape(Rectangle())
+			.formFieldStyle(icon: "brain.head.profile", hasFocus: isStressPickerFocused)
+			.onTapGesture {
+			   isStressPickerFocused = true
+			   focusedField = nil
 			}
 		 }
-		 .padding()
-		 .background(Color(.secondarySystemBackground))
-		 .cornerRadius(10)
 	  }
-	  .onChange(of: sleepHoursString) { _, _ in updateViewModelSleepTime() }
-	  .onChange(of: sleepMinutesString) { _, _ in updateViewModelSleepTime() }
+	  .formSectionStyle()
+	  .animation(.none, value: focusedField)
+	  .animation(.none, value: isStressPickerFocused)
 	  .onChange(of: bigPlanViewModel.sleepTime) { _, _ in
 		 updateLocalSleepStrings()
 	  }

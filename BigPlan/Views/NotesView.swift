@@ -1,95 +1,134 @@
-//   NotesView.swift
-//   BigPlan
-//
-//   Created by: Gp. on 5/5/25 at 7:40 PM
-//     Modified: 
-//
-//  Copyright Delicious Studios, LLC. - Grant Perry 
-
 import SwiftUI
 
 struct NotesView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
    @State private var isInitialWeatherLoaded = false
-   
+   @FocusState private var isNotesFocused: Bool
+   @State private var isWeatherFocused: Bool = false
+
    private var isToday: Bool {
 	  Calendar.current.isDateInToday(bigPlanViewModel.date)
    }
-   
+
    var body: some View {
-	  VStack(alignment: .leading, spacing: 20) {
-		 // Weather Section
-		 VStack(alignment: .leading, spacing: 8) {
-			HStack {
-			   Text("WEATHER")
-				  .font(.subheadline)
-				  .foregroundColor(.gray)
-			   Spacer()
-			   if !bigPlanViewModel.isEditing || isToday {
-				  Button {
-					 Task {
-						await bigPlanViewModel.fetchAndAppendWeather()
-					 }
-				  } label: {
-					 Image(systemName: "arrow.clockwise")
-						.foregroundColor(.accentColor)
-				  }
-				  .disabled(bigPlanViewModel.isLoadingWeather)
-			   }
-			}
-			
-			if let weatherData = bigPlanViewModel.weatherData {
-			   VStack(alignment: .leading, spacing: 4) {
-				  let lines = weatherData.components(separatedBy: "\n")
-				  if lines.count >= 1 {
-					 Text(lines[0])  // City, State
-						.font(.callout)
-				  }
-				  ForEach(1..<lines.count, id: \.self) { index in
-					 Text(lines[index])
-						.font(.caption2)
-				  }
-			   }
-			   .frame(maxWidth: .infinity, alignment: .leading)
-			   .padding()
-			   .background(Color(.secondarySystemBackground))
-			   .cornerRadius(10)
-			}
-		 }
-		 
+	  VStack(alignment: .leading, spacing: 18) {
 		 // Notes Section
-		 VStack(alignment: .leading, spacing: 8) {
+		 VStack(alignment: .leading, spacing: 12) {
 			Text("NOTES")
-			   .font(.subheadline)
-			   .foregroundColor(.gray)
-			
+			   .font(.system(size: 24, weight: .semibold))
+			   .foregroundColor(.white.opacity(0.9))
+			   .textCase(.uppercase)
+
 			TextEditor(text: Binding(
 			   get: { bigPlanViewModel.notes ?? "" },
-			   set: { bigPlanViewModel.notes = $0.isEmpty ? nil : $0 }
+			   set: {
+				  bigPlanViewModel.notes = $0.isEmpty ? nil : $0
+				  isNotesFocused = true // Keep focus when typing
+			   }
 			))
-			.frame(minHeight: 100)
-			.padding()
-			.background(Color(.secondarySystemBackground))
+			.focused($isNotesFocused)
+			.frame(minHeight: 250)
+			.font(.system(size: 23))
+			.padding(14)
+			.background(Color.black.opacity(0.3))
 			.cornerRadius(10)
+			.overlay(
+			   RoundedRectangle(cornerRadius: 10)
+				  .stroke(isNotesFocused ? Color.blue.opacity(0.5) : Color.white.opacity(0.05),
+						  lineWidth: isNotesFocused ? 2 : 0.5)
+			)
+			.shadow(color: isNotesFocused ? Color.blue.opacity(0.3) : .clear, radius: 8)
 			.overlay(
 			   Group {
 				  if (bigPlanViewModel.notes ?? "").isEmpty {
 					 Text("Enter any additional notes here...")
-						.foregroundColor(.gray.opacity(0.5))
-						.padding(.top, 16)
-						.padding(.leading, 12)
+						.foregroundColor(isNotesFocused ? .gpGreen : .gray.opacity(0.3))
+						.font(.system(size: 23))
+						.padding(.top, 22)
+						.padding(.leading, 20)
 				  }
 			   },
 			   alignment: .topLeading
 			)
+			.contentShape(Rectangle())
+			.onTapGesture {
+			   isNotesFocused = true
+			   isWeatherFocused = false
+			}
 		 }
+		 .formSectionStyle()
+
+		 // Weather Section
+		 if let weatherData = bigPlanViewModel.weatherData {
+			VStack(alignment: .leading, spacing: 12) {
+			   HStack {
+				  Text("WEATHER")
+					 .font(.system(size: 24, weight: .semibold))
+					 .foregroundColor(.white.opacity(0.9))
+					 .textCase(.uppercase)
+
+				  Spacer()
+
+				  if !bigPlanViewModel.isEditing || isToday {
+					 Button {
+						Task {
+						   await bigPlanViewModel.fetchAndAppendWeather()
+						}
+					 } label: {
+						Image(systemName: "arrow.clockwise")
+						   .foregroundColor(.accentColor)
+						   .font(.system(size: 23))
+					 }
+					 .disabled(bigPlanViewModel.isLoadingWeather)
+				  }
+			   }
+
+			   let lines = weatherData.components(separatedBy: "\n")
+			   VStack(alignment: .leading, spacing: 8) {
+				  if lines.count >= 1 {
+					 Text(lines[0])  // City, State
+						.font(.system(size: 23))
+						.foregroundColor(isWeatherFocused ? .gpGreen : .white)
+				  }
+				  ForEach(1..<lines.count, id: \.self) { index in
+					 Text(lines[index])
+						.font(.system(size: 23))
+						.foregroundColor(.gray)
+				  }
+			   }
+			   .padding(14)
+			   .frame(maxWidth: .infinity, alignment: .leading)
+			   .background(Color.black.opacity(0.3))
+			   .cornerRadius(10)
+			   .overlay(
+				  RoundedRectangle(cornerRadius: 10)
+					 .stroke(isWeatherFocused ? Color.blue.opacity(0.5) : Color.white.opacity(0.05),
+							 lineWidth: isWeatherFocused ? 2 : 0.5)
+			   )
+			   .shadow(color: isWeatherFocused ? Color.blue.opacity(0.3) : .clear, radius: 8)
+			   .contentShape(Rectangle())
+			   .onTapGesture {
+				  isWeatherFocused = true
+				  isNotesFocused = false
+			   }
+			}
+			.formSectionStyle()
+		 }
+
+		 // Version at bottom
+		 Text("Version: \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown")")
+			.font(.system(size: 17))
+			.foregroundColor(.gray)
+			.frame(maxWidth: .infinity, alignment: .center)
+			.padding(.top, 8)
 	  }
 	  .task {
-		 // Only fetch weather once when view appears
 		 if !isInitialWeatherLoaded && (!bigPlanViewModel.isEditing || isToday) {
 			isInitialWeatherLoaded = true
 			await bigPlanViewModel.fetchAndAppendWeather()
 		 }
 	  }
+	  .animation(.none, value: isNotesFocused)
+	  .animation(.none, value: isWeatherFocused)
    }
 }

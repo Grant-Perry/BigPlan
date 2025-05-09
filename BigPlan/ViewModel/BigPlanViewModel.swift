@@ -31,7 +31,7 @@ class BigPlanViewModel: ObservableObject {
 	  )) ?? []
    }
 
-   var healthKitAuthorized = false
+   private(set) var healthKitAuthorized: Bool = false
 
    var isWeatherLoaded: Bool = false
    var isLoadingWeather: Bool = false
@@ -117,11 +117,13 @@ class BigPlanViewModel: ObservableObject {
 	  self.formInstanceId = existingEntry?.id ?? UUID() // Use existing entry's ID or a new UUID for new entries
 
 	  // Original logging for debugging:
-	  logger.debug("BigPlanViewModel initialized. Has existingEntry: \(existingEntry != nil, privacy: .public), ID: \(existingEntry?.id.uuidString ?? "N/A", privacy: .public), FormInstanceID: \(self.formInstanceId.uuidString, privacy: .public)")
+	  // logger.debug("BigPlanViewModel initialized. Has existingEntry: \(existingEntry != nil, privacy: .public), ID: \(existingEntry?.id.uuidString ?? "N/A", privacy: .public), FormInstanceID: \(self.formInstanceId.uuidString, privacy: .public)")
+	  self.isInitializing = true
+	  logger.debug("BigPlanViewModel init: isInitializing synchronously set to true. FormInstanceID: \(self.formInstanceId.uuidString, privacy: .public)")
 
 
 	  Task {
-		 isInitializing = true
+
 		 if let entry = existingEntry {
 			self.date = entry.date
 			self.wakeTime = entry.wakeTime
@@ -146,8 +148,9 @@ class BigPlanViewModel: ObservableObject {
 		 }
 
 
-		 healthKitAuthorized = await HealthKitManager.shared.requestAuthorization()
-		 if healthKitAuthorized && existingEntry == nil {
+		 let healthKitAuthorization = await HealthKitManager.shared.requestAuthorization()
+		 self.healthKitAuthorized = healthKitAuthorization
+		 if healthKitAuthorization && existingEntry == nil {
 			await fetchTodaySteps()
 		 }
 		 if existingEntry == nil || Calendar.current.isDateInToday(date) {
@@ -156,7 +159,9 @@ class BigPlanViewModel: ObservableObject {
 			// The current weatherData check might be insufficient.
 			await fetchAndAppendWeather()
 		 }
-		 isInitializing = false
+		 // Ensure isInitializing is set to false after all async operations are complete.
+		 self.isInitializing = false
+		 logger.debug("BigPlanViewModel async setup complete: isInitializing set to false. FormInstanceID: \(self.formInstanceId.uuidString, privacy: .public)")
 	  }
    }
 
@@ -260,7 +265,7 @@ class BigPlanViewModel: ObservableObject {
    }
 
    func requestHealthKitAuthorization() async {
-	  healthKitAuthorized = await HealthKitManager.shared.requestAuthorization()
+	  self.healthKitAuthorized = await HealthKitManager.shared.requestAuthorization()
 	  if healthKitAuthorized {
 		 await fetchTodaySteps()
 	  }
