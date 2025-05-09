@@ -272,18 +272,15 @@ class BigPlanViewModel: ObservableObject {
    }
 
    func fetchTodaySteps() async {
-	  // Ensure steps are only fetched if there isn't an existing value or if it's appropriate to override
-	  // (e.g., for a new entry or if the date is today and no steps are logged yet)
-	  if self.steps == nil || (Calendar.current.isDateInToday(self.date) && self.existingEntry == nil) {
-		 await HealthKitManager.shared.fetchTodaySteps()
+	  // When refreshing steps, we want to fetch regardless of existing value
+	  await HealthKitManager.shared.fetchTodaySteps()
 
-		 let currentHKSteps = HealthKitManager.shared.todaySteps
-		 if currentHKSteps > 0 {
-			self.steps = currentHKSteps
-		 } else {
-			if self.steps == nil {
-			   self.steps = 0
-			}
+	  let currentHKSteps = HealthKitManager.shared.todaySteps
+	  if currentHKSteps > 0 {
+		 self.steps = currentHKSteps
+	  } else {
+		 if self.steps == nil {
+			self.steps = 0
 		 }
 	  }
    }
