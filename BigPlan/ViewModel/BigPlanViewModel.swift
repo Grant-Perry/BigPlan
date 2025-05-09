@@ -124,11 +124,8 @@ class BigPlanViewModel: ObservableObject {
    }
 
    var goalWeight: Double? {
-	  let descriptor = FetchDescriptor<DailyHealthEntry>(
-		 sortBy: [SortDescriptor(\DailyHealthEntry.date, order: .forward)]
-	  )
-
-	  return try? context.fetch(descriptor).first?.weight
+	  let descriptor = FetchDescriptor<Settings>()
+	  return try? context.fetch(descriptor).first?.weightTarget ?? 100.0
    }
 
    var weightDiffFromLastEntry: (diff: Double, isUp: Bool)? {

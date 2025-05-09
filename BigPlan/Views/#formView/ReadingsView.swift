@@ -1,11 +1,3 @@
-//   ReadingsView.swift
-//   BigPlan
-//
-//   Created by: Gp. on 5/5/25 at 7:42 PM
-//     Modified:
-//
-//  Copyright Delicious Studios, LLC. - Grant Perry
-//
 
 import SwiftUI
 
@@ -20,7 +12,7 @@ struct ReadingsView: View {
    @State private var diastolic: String = ""
    @FocusState private var focusedField: ReadingsField?
 
-   private let hintSize: CGFloat = 21  // Base 19 + 2
+   private let hintSize: CGFloat = AppConstants.hintSize
 
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
@@ -255,10 +247,9 @@ private struct WeightComparisons: View {
 
 		 if let (diff, isUp) = viewModel.weightDiffFromGoal {
 			HStack(spacing: 4) {
-			   Text("Base:")
+			   Text("Remain:")
 				  .foregroundStyle(.gray)
-			   Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
-				  .foregroundStyle(isUp ? .red : .green)
+//			  Also, for Edit/New Entry, make the .opacity(0.75) and under it put a large sfsymbol that represents editing or creating a record
 			   Text(String(format: "%.1f", diff))
 				  .foregroundStyle(isUp ? .red : .green)
 			   Text("lbs")

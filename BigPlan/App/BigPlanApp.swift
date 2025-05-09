@@ -61,7 +61,8 @@ class PersistenceController: ObservableObject {
    init() {
 	  do {
 		 let schema = Schema([
-			DailyHealthEntry.self
+			DailyHealthEntry.self,
+			Settings.self
 		 ])
 
 		 let storeURL = URL.documentsDirectory.appendingPathComponent("BigPlan.store")

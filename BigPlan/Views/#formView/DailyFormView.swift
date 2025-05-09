@@ -12,12 +12,12 @@ struct DailyFormView: View {
    @Environment(\.dismiss) private var dismiss
    @State private var showingDismissAlert = false
    @State private var isLoading = true
-
+   
    private func completeAction() {
 	  dismiss()
 	  selectedTab = 0
    }
-
+   
    private func handleDismiss() {
 	  if bigPlanViewModel.hasUnsavedChanges {
 		 showingDismissAlert = true
@@ -25,36 +25,23 @@ struct DailyFormView: View {
 		 completeAction()
 	  }
    }
-
+   
    var body: some View {
 	  NavigationStack {
 		 ZStack {
 			if isLoading {
 			   LoadingView()
 			} else {
+			   //  MARK: menu bar  at bottom of screen
 			   ScrollView {
 				  VStack(alignment: .leading, spacing: 4) {
-					 // Header with background icon
-					 ZStack(alignment: .trailing) {
-						// Background Icon
-						Image(systemName: bigPlanViewModel.isEditing ? "pencil.circle.fill" : "plus.circle.fill")
-						   .font(.system(size: 150))
-						   .foregroundStyle(.white.opacity(0.05))
-						   .offset(x: 40, y: 0)
-
-						// Content
-						VStack(alignment: .leading, spacing: 0) {
-						   HStack(alignment: .top) {
-							  Text(bigPlanViewModel.isEditing ? "Edit Entry" : "New Entry")
-								 .font(.system(size: 28, weight: .semibold))
-								 .opacity(0.75)
-							  Spacer()
-							  DateDisplayView(date: bigPlanViewModel.date, selectedDate: $bigPlanViewModel.date)
-						   }
-						}
+					 // Header with just the date
+					 HStack(alignment: .top) {
+						Spacer()
+						DateDisplayView(date: bigPlanViewModel.date, selectedDate: $bigPlanViewModel.date)
 					 }
 					 .padding(.horizontal)
-
+					 
 					 // Form Content
 					 FormContentView(bigPlanViewModel: bigPlanViewModel, selectedTab: $selectedTab)
 						.padding(.horizontal)
@@ -63,7 +50,7 @@ struct DailyFormView: View {
 			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
 			   .opacity(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving ? 0.6 : 1.0)
 			}
-
+			
 			// Loading Overlay
 			if bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving {
 			   LoadingView()
@@ -105,13 +92,13 @@ struct DailyFormView: View {
 			   completeAction()
 			}
 			.font(.system(size: 23))
-
+			
 			Button("Save") {
 			   bigPlanViewModel.saveEntry()
 			   completeAction()
 			}
 			.font(.system(size: 23))
-
+			
 			Button("Cancel", role: .cancel) { }
 			   .font(.system(size: 23))
 		 } message: {
