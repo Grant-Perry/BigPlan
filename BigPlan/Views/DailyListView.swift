@@ -98,9 +98,11 @@ struct DailyListView: View {
 
 // MARK: - Entry Row View
 private struct EntryRowView: View {
+   @Environment(\.modelContext) private var modelContext
    let entry: DailyHealthEntry
 
    private let metricFontSize: CGFloat = 19
+   private let smallMetricFontSize: CGFloat = 14
    private let metricIconSize: CGFloat = 17
    private let dateFontSize: CGFloat = 25
 
@@ -193,16 +195,15 @@ private struct EntryRowView: View {
 			}
 
 			if let weight = entry.weight {
-			   HStack(spacing: 4) {
-				  Image(systemName: "scalemass.fill")
-					 .foregroundColor(.blue)
-					 .font(.system(size: metricIconSize))
-				  Text("\(numberFormatter.string(from: NSNumber(value: weight)) ?? "0") lbs")
-					 .font(.system(size: metricFontSize))
-					 .lineLimit(1)
-					 .minimumScaleFactor(0.5)
-					 .foregroundColor(.blue)
-			   }
+			   WeightMetricView(
+				  weight: weight,
+				  entry: entry,
+				  modelContext: modelContext,
+				  formatter: numberFormatter,
+				  metricFontSize: metricFontSize,
+				  smallMetricFontSize: smallMetricFontSize,
+				  metricIconSize: metricIconSize
+			   )
 			   .frame(maxWidth: .infinity)
 			}
 
@@ -222,6 +223,59 @@ private struct EntryRowView: View {
 		 }
 	  }
 	  .padding(.vertical, 8)
+   }
+}
+
+// MARK: - Weight Metric View
+private struct WeightMetricView: View {
+   let weight: Double
+   let entry: DailyHealthEntry
+   let modelContext: ModelContext
+   let formatter: NumberFormatter
+   let metricFontSize: CGFloat
+   let smallMetricFontSize: CGFloat
+   let metricIconSize: CGFloat
+
+   var goalWeight: Double? {
+	  let descriptor = FetchDescriptor<DailyHealthEntry>(
+		 sortBy: [SortDescriptor(\DailyHealthEntry.date, order: .forward)]
+	  )
+	  return try? modelContext.fetch(descriptor).first?.weight
+   }
+
+   var weightDiffFromGoal: (diff: Double, isUp: Bool)? {
+	  guard let goalWeight = goalWeight else { return nil }
+	  let diff = weight - goalWeight
+	  return (abs(diff), diff > 0)
+   }
+
+   var body: some View {
+	  VStack(alignment: .leading, spacing: 2) {
+		 HStack(spacing: 4) {
+			Image(systemName: "scalemass.fill")
+			   .foregroundColor(.blue)
+			   .font(.system(size: metricIconSize))
+			Text("\(formatter.string(from: NSNumber(value: weight)) ?? "0") lbs")
+			   .font(.system(size: metricFontSize))
+			   .lineLimit(1)
+			   .minimumScaleFactor(0.5)
+			   .foregroundColor(.blue)
+		 }
+
+		 if let (diff, isUp) = weightDiffFromGoal {
+			HStack(spacing: 2) {
+			   Text("Goal:")
+				  .foregroundStyle(.gray)
+				  .font(.system(size: smallMetricFontSize))
+			   Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
+				  .foregroundStyle(isUp ? .red : .green)
+				  .font(.system(size: smallMetricFontSize))
+			   Text("\(formatter.string(from: NSNumber(value: diff)) ?? "0")")
+				  .foregroundStyle(isUp ? .red : .green)
+				  .font(.system(size: smallMetricFontSize))
+			}
+		 }
+	  }
    }
 }
 

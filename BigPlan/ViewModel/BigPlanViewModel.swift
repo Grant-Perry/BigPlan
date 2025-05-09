@@ -105,6 +105,46 @@ class BigPlanViewModel: ObservableObject {
    """
    }
 
+   // MARK: - Weight Comparison Properties
+   var lastEntryWeight: Double? {
+	  // Skip the current entry if we're editing
+	  let currentEntryId = existingEntry?.id
+
+	  let descriptor = FetchDescriptor<DailyHealthEntry>(
+		 sortBy: [SortDescriptor(\DailyHealthEntry.date, order: .reverse)]
+	  )
+
+	  if let entries = try? context.fetch(descriptor) {
+		 // Find the last entry that has a weight and isn't the current entry
+		 return entries.first { entry in
+			entry.id != currentEntryId && entry.weight != nil
+		 }?.weight
+	  }
+	  return nil
+   }
+
+   var goalWeight: Double? {
+	  let descriptor = FetchDescriptor<DailyHealthEntry>(
+		 sortBy: [SortDescriptor(\DailyHealthEntry.date, order: .forward)]
+	  )
+
+	  return try? context.fetch(descriptor).first?.weight
+   }
+
+   var weightDiffFromLastEntry: (diff: Double, isUp: Bool)? {
+	  guard let currentWeight = weight,
+			let lastWeight = lastEntryWeight else { return nil }
+	  let diff = currentWeight - lastWeight
+	  return (abs(diff), diff > 0)
+   }
+
+   var weightDiffFromGoal: (diff: Double, isUp: Bool)? {
+	  guard let currentWeight = weight,
+			let goalWeight = goalWeight else { return nil }
+	  let diff = currentWeight - goalWeight
+	  return (abs(diff), diff > 0)
+   }
+
    // MARK: - Initialization
 
    /// Initializes the ViewModel with the given SwiftData context, optionally loading an existing entry.
@@ -224,16 +264,16 @@ class BigPlanViewModel: ObservableObject {
 			   self.existingEntry = entryToSave
 			}
 
-			logger.info("💾 Attempting to save entry: \(entryToSave.id)")
+			logger.info(" Attempting to save entry: \(entryToSave.id)")
 			try context.save()
-			logger.info("✅ Save successful")
+			logger.info(" Save successful")
 
 			let descriptor = FetchDescriptor<DailyHealthEntry>()
 			let savedEntries = try context.fetch(descriptor)
-			logger.info("📊 Total entries after save: \(savedEntries.count)")
+			logger.info(" Total entries after save: \(savedEntries.count)")
 			_hasUnsavedChanges = false  // Reset after successful save
 		 } catch {
-			logger.error("❌ Save failed: \(error.localizedDescription)")
+			logger.error(" Save failed: \(error.localizedDescription)")
 		 }
 	  }
    }
@@ -244,9 +284,9 @@ class BigPlanViewModel: ObservableObject {
 	  do {
 		 context.delete(entry)
 		 try context.save()
-		 logger.info("✅ Entry deleted and saved: \(entry.id)")
+		 logger.info(" Entry deleted and saved: \(entry.id)")
 	  } catch {
-		 logger.error("❌ Failed to delete entry: \(error.localizedDescription)")
+		 logger.error(" Failed to delete entry: \(error.localizedDescription)")
 	  }
    }
 
@@ -256,10 +296,10 @@ class BigPlanViewModel: ObservableObject {
 		 do {
 			context.delete(entry)
 			try context.save()
-			logger.info("✅ Current entry deleted and saved: \(entry.id)")
+			logger.info(" Current entry deleted and saved: \(entry.id)")
 			self.existingEntry = nil // Clear it after deletion
 		 } catch {
-			logger.error("❌ Failed to delete current entry: \(error.localizedDescription)")
+			logger.error(" Failed to delete current entry: \(error.localizedDescription)")
 		 }
 	  }
    }
@@ -320,18 +360,18 @@ class BigPlanViewModel: ObservableObject {
    /// Verifies the data store content for debugging purposes.
    func verifyDataStore() {
 	  do {
-		 logger.info("📋 BigPlanViewModel verification - Found \(self.entries.count) entries via computed property")
+		 logger.info(" BigPlanViewModel verification - Found \(self.entries.count) entries via computed property")
 
 		 self.entries.forEach { entry in
-			logger.info("🔍 ViewModel Entry found - ID: \(entry.id) Date: \(entry.date) Glucose: \(entry.glucose ?? 0)")
+			logger.info(" ViewModel Entry found - ID: \(entry.id) Date: \(entry.date) Glucose: \(entry.glucose ?? 0)")
 		 }
 
 		 let descriptor = FetchDescriptor<DailyHealthEntry>()
 		 let fetchedEntries = try self.context.fetch(descriptor)
-		 logger.info("🔄 ViewModel verification - Found \(fetchedEntries.count) entries via explicit fetch")
+		 logger.info(" ViewModel verification - Found \(fetchedEntries.count) entries via explicit fetch")
 
 	  } catch {
-		 logger.error("❌ Failed to verify data store from ViewModel: \(error.localizedDescription)")
+		 logger.error(" Failed to verify data store from ViewModel: \(error.localizedDescription)")
 	  }
    }
 

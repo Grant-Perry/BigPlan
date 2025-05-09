@@ -9,15 +9,16 @@
 
 import SwiftUI
 
+// MARK: - Form Fields
+enum ReadingsField {
+   case glucose, ketones, systolic, diastolic, weight
+}
+
 struct ReadingsView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
    @State private var systolic: String = ""
    @State private var diastolic: String = ""
-   @FocusState private var focusedField: Field?
-
-   private enum Field {
-	  case glucose, ketones, systolic, diastolic, weight
-   }
+   @FocusState private var focusedField: ReadingsField?
 
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
@@ -135,31 +136,15 @@ struct ReadingsView: View {
 			}
 
 			// Weight Field
-			HStack {
-			   Text("Weight")
-				  .foregroundColor(focusedField == .weight ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
-			   Spacer()
-			   TextField("", value: $bigPlanViewModel.weight, format: .number.rounded())
-				  .keyboardType(.decimalPad)
-				  .multilineTextAlignment(.trailing)
-				  .focused($focusedField, equals: .weight)
-				  .font(.system(size: 23))
-				  .placeholder(when: bigPlanViewModel.weight == nil) {
-					 Text("lbs")
-						.foregroundColor(focusedField == .weight ? .gpGreen : .gray.opacity(0.3))
-						.font(.system(size: 23))
-				  }
-			}
-			.formFieldStyle(icon: "scalemass.fill", hasFocus: focusedField == .weight)
-			.contentShape(Rectangle()) // Makes entire area tappable
-			.onTapGesture {
-			   focusedField = .weight
-			}
+			WeightSection(
+			   bigPlanViewModel: bigPlanViewModel,
+			   isFocused: focusedField == .weight,
+			   onTapField: { focusedField = .weight }
+			)
 		 }
 	  }
 	  .formSectionStyle()
-	  .animation(.none, value: focusedField) // Remove animation for focus changes
+	  .animation(.none, value: focusedField)
 	  .onAppear { loadBloodPressure() }
 	  .onChange(of: bigPlanViewModel.bloodPressure) { _, _ in
 		 loadBloodPressure()
@@ -198,5 +183,79 @@ struct ReadingsView: View {
 	  else {
 		 bigPlanViewModel.bloodPressure = nil
 	  }
+   }
+}
+
+// MARK: - Weight Section
+private struct WeightSection: View {
+   @ObservedObject var bigPlanViewModel: BigPlanViewModel
+   let isFocused: Bool
+   let onTapField: () -> Void
+
+   var body: some View {
+	  VStack(alignment: .leading, spacing: 8) {
+		 // Main Weight Input
+		 HStack {
+			Text("Weight")
+			   .foregroundColor(isFocused ? .gpGreen : .gray.opacity(0.8))
+			   .font(.system(size: 23))
+			Spacer()
+			TextField("", value: $bigPlanViewModel.weight, format: .number.rounded())
+			   .keyboardType(.decimalPad)
+			   .multilineTextAlignment(.trailing)
+			   .font(.system(size: 23))
+			   .placeholder(when: bigPlanViewModel.weight == nil) {
+				  Text("lbs")
+					 .foregroundColor(isFocused ? .gpGreen : .gray.opacity(0.3))
+					 .font(.system(size: 23))
+			   }
+		 }
+		 .formFieldStyle(icon: "scalemass.fill", hasFocus: isFocused)
+		 .contentShape(Rectangle())
+		 .onTapGesture(perform: onTapField)
+
+		 // Weight Comparisons
+		 if bigPlanViewModel.weight != nil {
+			WeightComparisons(viewModel: bigPlanViewModel)
+		 }
+	  }
+   }
+}
+
+// MARK: - Weight Comparisons
+private struct WeightComparisons: View {
+   let viewModel: BigPlanViewModel
+
+   var body: some View {
+	  VStack(alignment: .leading, spacing: 4) {
+		 if let (diff, isUp) = viewModel.weightDiffFromLastEntry {
+			HStack(spacing: 4) {
+			   Text("Last:")
+				  .foregroundStyle(.gray)
+			   Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
+				  .foregroundStyle(isUp ? .red : .green)
+			   Text(String(format: "%.1f", diff))
+				  .foregroundStyle(isUp ? .red : .green)
+			   Text("lbs")
+				  .foregroundStyle(.gray)
+			}
+			.font(.system(size: 16))
+		 }
+
+		 if let (diff, isUp) = viewModel.weightDiffFromGoal {
+			HStack(spacing: 4) {
+			   Text("Goal:")
+				  .foregroundStyle(.gray)
+			   Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
+				  .foregroundStyle(isUp ? .red : .green)
+			   Text(String(format: "%.1f", diff))
+				  .foregroundStyle(isUp ? .red : .green)
+			   Text("lbs")
+				  .foregroundStyle(.gray)
+			}
+			.font(.system(size: 16))
+		 }
+	  }
+	  .padding(.leading, 30)
    }
 }
