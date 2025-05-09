@@ -24,7 +24,7 @@ struct ActionButtonsView: View {
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
 		 Text("ACTIONS")
-			.font(.system(size: 24, weight: .semibold))
+			.font(.system(size: 20, weight: .semibold))
 			.foregroundColor(.white.opacity(0.9))
 			.textCase(.uppercase)
 
@@ -35,7 +35,7 @@ struct ActionButtonsView: View {
 			   completeAction()
 			} label: {
 			   Text("Save Entry")
-				  .font(.system(size: 23, weight: .medium))
+				  .font(.system(size: 19, weight: .medium))
 				  .foregroundColor(.white)
 				  .frame(maxWidth: .infinity)
 				  .padding(.vertical, 16)
@@ -62,7 +62,7 @@ struct ActionButtonsView: View {
 				  showDeleteConfirmation = true
 			   } label: {
 				  Text("Delete Entry")
-					 .font(.system(size: 23, weight: .medium))
+					 .font(.system(size: 19, weight: .medium))
 					 .foregroundColor(.white)
 					 .frame(maxWidth: .infinity)
 					 .padding(.vertical, 16)
@@ -91,13 +91,13 @@ struct ActionButtonsView: View {
 			bigPlanViewModel.deleteThisEntry()
 			completeAction()
 		 }
-		 .font(.system(size: 23))
+		 .font(.system(size: 19))
 
 		 Button("Cancel", role: .cancel) { }
-			.font(.system(size: 23))
+			.font(.system(size: 19))
 	  } message: {
 		 Text("This action cannot be undone.")
-			.font(.system(size: 23))
+			.font(.system(size: 19))
 	  }
 	  .contentShape(Rectangle())
 	  .onTapGesture {

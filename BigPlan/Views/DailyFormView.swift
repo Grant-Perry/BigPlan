@@ -33,13 +33,25 @@ struct DailyFormView: View {
 			   LoadingView()
 			} else {
 			   ScrollView {
-				  VStack(alignment: .leading, spacing: 20) {
-					 // Header
-					 HStack(alignment: .top) {
-						Text(bigPlanViewModel.isEditing ? "Edit Entry" : "New Entry")
-						   .font(.system(size: 28, weight: .semibold))
-						Spacer()
-						DateDisplayView(date: bigPlanViewModel.date, selectedDate: $bigPlanViewModel.date)
+				  VStack(alignment: .leading, spacing: 4) {
+					 // Header with background icon
+					 ZStack(alignment: .trailing) {
+						// Background Icon
+						Image(systemName: bigPlanViewModel.isEditing ? "pencil.circle.fill" : "plus.circle.fill")
+						   .font(.system(size: 150))
+						   .foregroundStyle(.white.opacity(0.05))
+						   .offset(x: 40, y: 0)
+
+						// Content
+						VStack(alignment: .leading, spacing: 0) {
+						   HStack(alignment: .top) {
+							  Text(bigPlanViewModel.isEditing ? "Edit Entry" : "New Entry")
+								 .font(.system(size: 28, weight: .semibold))
+								 .opacity(0.75)
+							  Spacer()
+							  DateDisplayView(date: bigPlanViewModel.date, selectedDate: $bigPlanViewModel.date)
+						   }
+						}
 					 }
 					 .padding(.horizontal)
 

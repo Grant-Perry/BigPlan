@@ -15,7 +15,7 @@ struct MealsView: View {
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
 		 Text("MEALS")
-			.font(.system(size: 24, weight: .semibold))
+			.font(.system(size: 20, weight: .semibold))
 			.foregroundColor(.white.opacity(0.9))
 			.textCase(.uppercase)
 
@@ -24,7 +24,7 @@ struct MealsView: View {
 			HStack {
 			   Text("First Meal")
 				  .foregroundColor(focusedField == "firstMeal" ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   DatePicker("", selection: Binding(
 				  get: { bigPlanViewModel.firstMealTime ?? Date() },
@@ -47,7 +47,7 @@ struct MealsView: View {
 			HStack {
 			   Text("Last Meal")
 				  .foregroundColor(focusedField == "lastMeal" ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   DatePicker("", selection: Binding(
 				  get: { bigPlanViewModel.lastMealTime ?? Date() },

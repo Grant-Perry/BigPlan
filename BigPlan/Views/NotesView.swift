@@ -15,7 +15,7 @@ struct NotesView: View {
 		 // Notes Section
 		 VStack(alignment: .leading, spacing: 12) {
 			Text("NOTES")
-			   .font(.system(size: 24, weight: .semibold))
+			   .font(.system(size: 20, weight: .semibold))
 			   .foregroundColor(.white.opacity(0.9))
 			   .textCase(.uppercase)
 
@@ -28,7 +28,7 @@ struct NotesView: View {
 			))
 			.focused($isNotesFocused)
 			.frame(minHeight: 250)
-			.font(.system(size: 23))
+			.font(.system(size: 19))
 			.padding(14)
 			.background(Color.black.opacity(0.3))
 			.cornerRadius(10)
@@ -43,7 +43,7 @@ struct NotesView: View {
 				  if (bigPlanViewModel.notes ?? "").isEmpty {
 					 Text("Enter any additional notes here...")
 						.foregroundColor(isNotesFocused ? .gpGreen : .gray.opacity(0.3))
-						.font(.system(size: 23))
+						.font(.system(size: 19))
 						.padding(.top, 22)
 						.padding(.leading, 20)
 				  }
@@ -63,7 +63,7 @@ struct NotesView: View {
 			VStack(alignment: .leading, spacing: 12) {
 			   HStack {
 				  Text("WEATHER")
-					 .font(.system(size: 24, weight: .semibold))
+					 .font(.system(size: 20, weight: .semibold))
 					 .foregroundColor(.white.opacity(0.9))
 					 .textCase(.uppercase)
 
@@ -77,7 +77,7 @@ struct NotesView: View {
 					 } label: {
 						Image(systemName: "arrow.clockwise")
 						   .foregroundColor(.accentColor)
-						   .font(.system(size: 23))
+						   .font(.system(size: 19))
 					 }
 					 .disabled(bigPlanViewModel.isLoadingWeather)
 				  }
@@ -87,12 +87,12 @@ struct NotesView: View {
 			   VStack(alignment: .leading, spacing: 8) {
 				  if lines.count >= 1 {
 					 Text(lines[0])  // City, State
-						.font(.system(size: 23))
+						.font(.system(size: 19))
 						.foregroundColor(isWeatherFocused ? .gpGreen : .white)
 				  }
 				  ForEach(1..<lines.count, id: \.self) { index in
 					 Text(lines[index])
-						.font(.system(size: 23))
+						.font(.system(size: 19))
 						.foregroundColor(.gray)
 				  }
 			   }

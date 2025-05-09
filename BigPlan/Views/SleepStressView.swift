@@ -23,7 +23,7 @@ struct SleepStressView: View {
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
 		 Text("SLEEP & STRESS")
-			.font(.system(size: 24, weight: .semibold))
+			.font(.system(size: 20, weight: .semibold))
 			.foregroundColor(.white.opacity(0.9))
 			.textCase(.uppercase)
 
@@ -32,36 +32,36 @@ struct SleepStressView: View {
 			HStack {
 			   Text("Sleep Time")
 				  .foregroundColor(focusedField != nil ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   HStack(spacing: 10) {
 				  TextField("", text: $sleepHoursString)
 					 .placeholder(when: sleepHoursString.isEmpty) {
 						Text("H")
 						   .foregroundColor(focusedField == .hours ? .gpGreen : .gray.opacity(0.3))
-						   .font(.system(size: 23))
+						   .font(.system(size: 19))
 					 }
 					 .keyboardType(.numberPad)
 					 .multilineTextAlignment(.trailing)
 					 .frame(width: 70)
 					 .focused($focusedField, equals: .hours)
-					 .font(.system(size: 23))
+					 .font(.system(size: 19))
 
 				  Text(":")
 					 .foregroundColor(.gray.opacity(0.5))
-					 .font(.system(size: 23))
+					 .font(.system(size: 19))
 
 				  TextField("", text: $sleepMinutesString)
 					 .placeholder(when: sleepMinutesString.isEmpty) {
 						Text("M")
 						   .foregroundColor(focusedField == .minutes ? .gpGreen : .gray.opacity(0.3))
-						   .font(.system(size: 23))
+						   .font(.system(size: 19))
 					 }
 					 .keyboardType(.numberPad)
 					 .multilineTextAlignment(.trailing)
 					 .frame(width: 70)
 					 .focused($focusedField, equals: .minutes)
-					 .font(.system(size: 23))
+					 .font(.system(size: 19))
 			   }
 			}
 			.contentShape(Rectangle())
@@ -94,7 +94,7 @@ struct SleepStressView: View {
 			HStack {
 			   Text("Stress Level")
 				  .foregroundColor(isStressPickerFocused ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   Picker("", selection: Binding(
 				  get: {
@@ -117,11 +117,11 @@ struct SleepStressView: View {
 			   )) {
 				  Text("").tag("")
 				  Text("Low").tag("Low")
-					 .font(.system(size: 23))
+					 .font(.system(size: 19))
 				  Text("Medium").tag("Medium")
-					 .font(.system(size: 23))
+					 .font(.system(size: 19))
 				  Text("High").tag("High")
-					 .font(.system(size: 23))
+					 .font(.system(size: 19))
 			   }
 			   .labelsHidden()
 			   .scaleEffect(1.1)

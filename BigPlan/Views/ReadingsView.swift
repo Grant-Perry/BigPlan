@@ -9,20 +9,23 @@
 
 import SwiftUI
 
+// MARK: - Form Fields
+enum ReadingsField {
+   case glucose, ketones, systolic, diastolic, weight
+}
+
 struct ReadingsView: View {
    @ObservedObject var bigPlanViewModel: BigPlanViewModel
    @State private var systolic: String = ""
    @State private var diastolic: String = ""
-   @FocusState private var focusedField: Field?
+   @FocusState private var focusedField: ReadingsField?
 
-   private enum Field {
-	  case glucose, ketones, systolic, diastolic, weight
-   }
+   private let hintSize: CGFloat = 21  // Base 19 + 2
 
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
 		 Text("READINGS")
-			.font(.system(size: 24, weight: .semibold))
+			.font(.system(size: 20, weight: .semibold))
 			.foregroundColor(.white.opacity(0.9))
 			.textCase(.uppercase)
 
@@ -31,17 +34,17 @@ struct ReadingsView: View {
 			HStack {
 			   Text("Glucose")
 				  .foregroundColor(focusedField == .glucose ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   TextField("", value: $bigPlanViewModel.glucose, format: .number.rounded())
 				  .keyboardType(.decimalPad)
 				  .multilineTextAlignment(.trailing)
 				  .focused($focusedField, equals: .glucose)
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 				  .placeholder(when: bigPlanViewModel.glucose == nil) {
 					 Text("mg/dL")
 						.foregroundColor(focusedField == .glucose ? .gpGreen : .gray.opacity(0.3))
-						.font(.system(size: 23))
+						.font(.system(size: hintSize))
 				  }
 			}
 			.formFieldStyle(icon: "drop.fill", hasFocus: focusedField == .glucose)
@@ -54,17 +57,17 @@ struct ReadingsView: View {
 			HStack {
 			   Text("Ketones")
 				  .foregroundColor(focusedField == .ketones ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   TextField("", value: $bigPlanViewModel.ketones, format: .number.rounded())
 				  .keyboardType(.decimalPad)
 				  .multilineTextAlignment(.trailing)
 				  .focused($focusedField, equals: .ketones)
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 				  .placeholder(when: bigPlanViewModel.ketones == nil) {
 					 Text("mmol/L")
 						.foregroundColor(focusedField == .ketones ? .gpGreen : .gray.opacity(0.3))
-						.font(.system(size: 23))
+						.font(.system(size: hintSize))
 				  }
 			}
 			.formFieldStyle(icon: "flame.fill", hasFocus: focusedField == .ketones)
@@ -77,7 +80,7 @@ struct ReadingsView: View {
 			HStack {
 			   Text("Blood Pressure")
 				  .foregroundColor((focusedField == .systolic || focusedField == .diastolic) ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 				  .lineLimit(2)
 				  .fixedSize(horizontal: false, vertical: true)
 				  .frame(maxWidth: .infinity, alignment: .leading)
@@ -88,27 +91,29 @@ struct ReadingsView: View {
 					 .placeholder(when: systolic.isEmpty) {
 						Text("sys")
 						   .foregroundColor((focusedField == .systolic || focusedField == .diastolic) ? .gpGreen : .gray.opacity(0.3))
+						   .font(.system(size: hintSize))
 					 }
 					 .keyboardType(.numberPad)
 					 .multilineTextAlignment(.trailing)
 					 .frame(width: 70)
 					 .focused($focusedField, equals: .systolic)
-					 .font(.system(size: 23))
+					 .font(.system(size: 19))
 
 				  Text("/")
 					 .foregroundColor(.gray.opacity(0.5))
-					 .font(.system(size: 23))
+					 .font(.system(size: 19))
 
 				  TextField("", text: $diastolic)
 					 .placeholder(when: diastolic.isEmpty) {
 						Text("dia")
 						   .foregroundColor((focusedField == .systolic || focusedField == .diastolic) ? .gpGreen : .gray.opacity(0.3))
+						   .font(.system(size: hintSize))
 					 }
 					 .keyboardType(.numberPad)
 					 .multilineTextAlignment(.trailing)
 					 .frame(width: 70)
 					 .focused($focusedField, equals: .diastolic)
-					 .font(.system(size: 23))
+					 .font(.system(size: 19))
 			   }
 			}
 			.formFieldStyle(icon: "heart.fill", hasFocus: focusedField == .systolic || focusedField == .diastolic)
@@ -135,32 +140,22 @@ struct ReadingsView: View {
 			}
 
 			// Weight Field
-			HStack {
-			   Text("Weight")
-				  .foregroundColor(focusedField == .weight ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
-			   Spacer()
-			   TextField("", value: $bigPlanViewModel.weight, format: .number.rounded())
-				  .keyboardType(.decimalPad)
-				  .multilineTextAlignment(.trailing)
-				  .focused($focusedField, equals: .weight)
-				  .font(.system(size: 23))
-				  .placeholder(when: bigPlanViewModel.weight == nil) {
-					 Text("lbs")
-						.foregroundColor(focusedField == .weight ? .gpGreen : .gray.opacity(0.3))
-						.font(.system(size: 23))
-				  }
-			}
-			.formFieldStyle(icon: "scalemass.fill", hasFocus: focusedField == .weight)
-			.contentShape(Rectangle()) // Makes entire area tappable
-			.onTapGesture {
-			   focusedField = .weight
-			}
+			WeightSection(
+			   bigPlanViewModel: bigPlanViewModel,
+			   isFocused: focusedField == .weight,
+			   onTapField: { focusedField = .weight },
+			   hintSize: hintSize
+			)
 		 }
 	  }
 	  .formSectionStyle()
-	  .animation(.none, value: focusedField) // Remove animation for focus changes
-	  .onAppear { loadBloodPressure() }
+	  .animation(.none, value: focusedField)
+	  .onAppear {
+		 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+			focusedField = .glucose  // Set initial focus with slight delay for better UX
+		 }
+		 loadBloodPressure()
+	  }
 	  .onChange(of: bigPlanViewModel.bloodPressure) { _, _ in
 		 loadBloodPressure()
 	  }
@@ -198,5 +193,80 @@ struct ReadingsView: View {
 	  else {
 		 bigPlanViewModel.bloodPressure = nil
 	  }
+   }
+}
+
+// MARK: - Weight Section
+private struct WeightSection: View {
+   @ObservedObject var bigPlanViewModel: BigPlanViewModel
+   let isFocused: Bool
+   let onTapField: () -> Void
+   let hintSize: CGFloat
+
+   var body: some View {
+	  VStack(alignment: .leading, spacing: 8) {
+		 // Main Weight Input
+		 HStack {
+			Text("Weight")
+			   .foregroundColor(isFocused ? .gpGreen : .gray.opacity(0.8))
+			   .font(.system(size: 19))
+			Spacer()
+			TextField("", value: $bigPlanViewModel.weight, format: .number.rounded())
+			   .keyboardType(.decimalPad)
+			   .multilineTextAlignment(.trailing)
+			   .font(.system(size: 19))
+			   .placeholder(when: bigPlanViewModel.weight == nil) {
+				  Text("lbs")
+					 .foregroundColor(isFocused ? .gpGreen : .gray.opacity(0.3))
+					 .font(.system(size: hintSize))
+			   }
+		 }
+		 .formFieldStyle(icon: "scalemass.fill", hasFocus: isFocused)
+		 .contentShape(Rectangle())
+		 .onTapGesture(perform: onTapField)
+
+		 // Weight Comparisons
+		 if bigPlanViewModel.weight != nil {
+			WeightComparisons(viewModel: bigPlanViewModel)
+		 }
+	  }
+   }
+}
+
+// MARK: - Weight Comparisons
+private struct WeightComparisons: View {
+   let viewModel: BigPlanViewModel
+
+   var body: some View {
+	  VStack(alignment: .leading, spacing: 4) {
+		 if let (diff, isUp) = viewModel.weightDiffFromLastEntry {
+			HStack(spacing: 4) {
+			   Text("Last:")
+				  .foregroundStyle(.gray)
+			   Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
+				  .foregroundStyle(isUp ? .red : .green)
+			   Text(String(format: "%.1f", diff))
+				  .foregroundStyle(isUp ? .red : .green)
+			   Text("lbs")
+				  .foregroundStyle(.gray)
+			}
+			.font(.system(size: 16))
+		 }
+
+		 if let (diff, isUp) = viewModel.weightDiffFromGoal {
+			HStack(spacing: 4) {
+			   Text("Base:")
+				  .foregroundStyle(.gray)
+			   Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
+				  .foregroundStyle(isUp ? .red : .green)
+			   Text(String(format: "%.1f", diff))
+				  .foregroundStyle(isUp ? .red : .green)
+			   Text("lbs")
+				  .foregroundStyle(.gray)
+			}
+			.font(.system(size: 16))
+		 }
+	  }
+	  .padding(.leading, 30)
    }
 }

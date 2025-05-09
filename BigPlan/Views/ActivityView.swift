@@ -22,7 +22,7 @@ struct ActivityView: View {
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
 		 Text("ACTIVITY")
-			.font(.system(size: 24, weight: .semibold))
+			.font(.system(size: 20, weight: .semibold))
 			.foregroundColor(.white.opacity(0.9))
 			.textCase(.uppercase)
 
@@ -31,7 +31,7 @@ struct ActivityView: View {
 			HStack {
 			   Text("Walked AM")
 				  .foregroundColor(focusedToggle == "walkedAM" ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   Toggle("", isOn: $bigPlanViewModel.walkedAM)
 				  .labelsHidden()
@@ -48,7 +48,7 @@ struct ActivityView: View {
 			HStack {
 			   Text("Walked PM")
 				  .foregroundColor(focusedToggle == "walkedPM" ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   Toggle("", isOn: $bigPlanViewModel.walkedPM)
 				  .labelsHidden()
@@ -65,7 +65,7 @@ struct ActivityView: View {
 			HStack {
 			   Text("Went to Gym")
 				  .foregroundColor(focusedToggle == "wentToGym" ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   Toggle("", isOn: $bigPlanViewModel.wentToGym)
 				  .labelsHidden()
@@ -82,7 +82,7 @@ struct ActivityView: View {
 			HStack {
 			   Text("Red Light Therapy")
 				  .foregroundColor(focusedToggle == "rlt" ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   Toggle("", isOn: Binding(
 				  get: { bigPlanViewModel.rlt != nil && !bigPlanViewModel.rlt!.isEmpty },
@@ -102,7 +102,7 @@ struct ActivityView: View {
 			HStack {
 			   Text("Steps")
 				  .foregroundColor(isStepsFocused ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   Spacer()
 			   if isFetchingSteps {
 				  ProgressView()
@@ -114,11 +114,11 @@ struct ActivityView: View {
 						.multilineTextAlignment(.trailing)
 						.frame(width: 120)
 						.focused($isStepsFocused)
-						.font(.system(size: 23))
+						.font(.system(size: 19))
 						.placeholder(when: bigPlanViewModel.steps == nil) {
 						   Text("steps")
 							  .foregroundColor(isStepsFocused ? .gpGreen : .gray.opacity(0.3))
-							  .font(.system(size: 23))
+							  .font(.system(size: 19))
 						}
 
 					 if !bigPlanViewModel.isEditing || isToday {
@@ -131,7 +131,7 @@ struct ActivityView: View {
 						} label: {
 						   Image(systemName: "arrow.clockwise")
 							  .foregroundColor(.accentColor)
-							  .font(.system(size: 23))
+							  .font(.system(size: 19))
 						}
 					 }
 				  }
@@ -140,7 +140,7 @@ struct ActivityView: View {
 					 showHealthKitAuth = true
 				  }
 				  .buttonStyle(.bordered)
-				  .font(.system(size: 23))
+				  .font(.system(size: 19))
 			   }
 			}
 			.contentShape(Rectangle())
@@ -165,7 +165,7 @@ struct ActivityView: View {
 		 Button("Cancel", role: .cancel) { }
 	  } message: {
 		 Text("Allow BigPlan to access your step count data from Health?")
-			.font(.system(size: 23))
+			.font(.system(size: 19))
 	  }
    }
 }

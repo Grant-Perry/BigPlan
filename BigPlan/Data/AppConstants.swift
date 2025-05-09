@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppConstants {
    static let appName = "BigPlan"
+   static let hintSize: CGFloat = 21  // Base 19 + 2
 
    static func getVersion() -> String {
 	  return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"

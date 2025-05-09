@@ -14,17 +14,17 @@ import SwiftData
 struct DailyListView: View {
    @Binding var selectedTab: Int
    @Environment(\.modelContext) private var modelContext
-
+   
    @Query(
 	  sort: [SortDescriptor(\DailyHealthEntry.date, order: .reverse)]
    ) private var entries: [DailyHealthEntry]
-
+   
    @State private var selectedEntry: DailyHealthEntry?
    @State private var showDeleteConfirmation = false
    @State private var entryToDelete: DailyHealthEntry?
    @State private var showUndoToast = false
    @State private var recentlyDeletedEntry: DailyHealthEntry?
-
+   
    var body: some View {
 	  NavigationStack {
 		 Group {
@@ -65,11 +65,11 @@ struct DailyListView: View {
 			   )
 			}
 		 }
-
+		 
 		 AppConstants.VersionFooter()
 	  }
    }
-
+   
    @ViewBuilder
    private var entryList: some View {
 	  List {
@@ -98,19 +98,21 @@ struct DailyListView: View {
 
 // MARK: - Entry Row View
 private struct EntryRowView: View {
+   @Environment(\.modelContext) private var modelContext
    let entry: DailyHealthEntry
-
+   
    private let metricFontSize: CGFloat = 19
+   private let smallMetricFontSize: CGFloat = 14
    private let metricIconSize: CGFloat = 17
    private let dateFontSize: CGFloat = 25
-
+   
    private let numberFormatter: NumberFormatter = {
 	  let formatter = NumberFormatter()
 	  formatter.numberStyle = .decimal
 	  formatter.maximumFractionDigits = 1
 	  return formatter
    }()
-
+   
    var body: some View {
 	  VStack(alignment: .leading, spacing: 8) {
 		 HStack {
@@ -132,7 +134,7 @@ private struct EntryRowView: View {
 			   }
 			}
 		 }
-
+		 
 		 HStack(spacing: 12) {
 			if let glucose = entry.glucose {
 			   HStack(spacing: 4) {
@@ -147,7 +149,7 @@ private struct EntryRowView: View {
 			   }
 			   .frame(maxWidth: .infinity)
 			}
-
+			
 			if let ketones = entry.ketones {
 			   HStack(spacing: 4) {
 				  Image(systemName: "flame.fill")
@@ -161,7 +163,7 @@ private struct EntryRowView: View {
 			   }
 			   .frame(maxWidth: .infinity)
 			}
-
+			
 			if let bp = entry.bloodPressure {
 			   HStack(spacing: 4) {
 				  Image(systemName: "heart.fill")
@@ -176,7 +178,7 @@ private struct EntryRowView: View {
 			   .frame(maxWidth: .infinity)
 			}
 		 }
-
+		 
 		 HStack(spacing: 12) {
 			if let steps = entry.steps {
 			   HStack(spacing: 4) {
@@ -191,21 +193,20 @@ private struct EntryRowView: View {
 			   }
 			   .frame(maxWidth: .infinity)
 			}
-
+			
 			if let weight = entry.weight {
-			   HStack(spacing: 4) {
-				  Image(systemName: "scalemass.fill")
-					 .foregroundColor(.blue)
-					 .font(.system(size: metricIconSize))
-				  Text("\(numberFormatter.string(from: NSNumber(value: weight)) ?? "0") lbs")
-					 .font(.system(size: metricFontSize))
-					 .lineLimit(1)
-					 .minimumScaleFactor(0.5)
-					 .foregroundColor(.blue)
-			   }
+			   WeightMetricView(
+				  weight: weight,
+				  entry: entry,
+				  modelContext: modelContext,
+				  formatter: numberFormatter,
+				  metricFontSize: metricFontSize,
+				  smallMetricFontSize: smallMetricFontSize,
+				  metricIconSize: metricIconSize
+			   )
 			   .frame(maxWidth: .infinity)
 			}
-
+			
 			if let sleepTime = entry.sleepTime {
 			   HStack(spacing: 4) {
 				  Image(systemName: "moon.zzz.fill")
@@ -225,10 +226,64 @@ private struct EntryRowView: View {
    }
 }
 
+// MARK: - Weight Metric View
+private struct WeightMetricView: View {
+   let weight: Double
+   let entry: DailyHealthEntry
+   let modelContext: ModelContext
+   let formatter: NumberFormatter
+   let metricFontSize: CGFloat
+   let smallMetricFontSize: CGFloat
+   let metricIconSize: CGFloat
+   
+   var lastEntry: DailyHealthEntry? {
+	  let descriptor = FetchDescriptor<DailyHealthEntry>(
+		 sortBy: [SortDescriptor(\DailyHealthEntry.date, order: .reverse)]
+	  )
+	  let entries = try? modelContext.fetch(descriptor)
+	  return entries?.first { $0.date < entry.date }
+   }
+   
+   var weightDiffFromLast: (diff: Double, isUp: Bool)? {
+	  guard let lastWeight = lastEntry?.weight else { return nil }
+	  let diff = weight - lastWeight
+	  return (abs(diff), diff > 0)
+   }
+   
+   var body: some View {
+	  VStack(alignment: .leading, spacing: 2) {
+		 HStack(spacing: 4) {
+			Image(systemName: "scalemass.fill")
+			   .foregroundColor(.blue)
+			   .font(.system(size: metricIconSize))
+			Text("\(formatter.string(from: NSNumber(value: weight)) ?? "0") lbs")
+			   .font(.system(size: metricFontSize))
+			   .lineLimit(1)
+			   .minimumScaleFactor(0.5)
+			   .foregroundColor(.blue)
+		 }
+		 
+		 if let (diff, isUp) = weightDiffFromLast {
+			HStack(spacing: 2) {
+			   Text("Last:")
+				  .foregroundStyle(.gray)
+				  .font(.system(size: smallMetricFontSize))
+			   Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
+				  .foregroundStyle(isUp ? .red : .green)
+				  .font(.system(size: smallMetricFontSize))
+			   Text("\(formatter.string(from: NSNumber(value: diff)) ?? "0")")
+				  .foregroundStyle(isUp ? .red : .green)
+				  .font(.system(size: smallMetricFontSize))
+			}
+		 }
+	  }
+   }
+}
+
 #Preview {
    let config = ModelConfiguration(isStoredInMemoryOnly: true)
    let container = try! ModelContainer(for: DailyHealthEntry.self, configurations: config)
-
+   
    let context = ModelContext(container)
    let sampleEntry1 = DailyHealthEntry(
 	  date: .now,
@@ -250,7 +305,7 @@ private struct EntryRowView: View {
 	  notes: "Great day!"
    )
    context.insert(sampleEntry1)
-
+   
    let sampleEntry2 = DailyHealthEntry(
 	  date: Calendar.current.date(byAdding: .day, value: -1, to: .now)!,
 	  wakeTime: .now,
@@ -271,7 +326,7 @@ private struct EntryRowView: View {
 	  notes: "Decent day"
    )
    context.insert(sampleEntry2)
-
+   
    return DailyListView(selectedTab: .constant(0))
 	  .modelContainer(container)
 }
