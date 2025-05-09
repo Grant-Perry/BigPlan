@@ -15,7 +15,6 @@ struct DailyListView: View {
    @Binding var selectedTab: Int
    @Environment(\.modelContext) private var modelContext
 
-   // Explicitly set the sort descriptor
    @Query(
 	  sort: [SortDescriptor(\DailyHealthEntry.date, order: .reverse)]
    ) private var entries: [DailyHealthEntry]
@@ -36,7 +35,6 @@ struct DailyListView: View {
 				  description: Text("Tap the + tab to add your first entry")
 			   )
 			} else {
-			   // Use the extracted computed property here
 			   entryList
 			}
 		 }
@@ -72,7 +70,6 @@ struct DailyListView: View {
 	  }
    }
 
-   // ADD: Computed property for the List view
    @ViewBuilder
    private var entryList: some View {
 	  List {
@@ -103,10 +100,9 @@ struct DailyListView: View {
 private struct EntryRowView: View {
    let entry: DailyHealthEntry
 
-   // Add size properties
-   private let metricFontSize: CGFloat = 19  // Was .title3
-   private let metricIconSize: CGFloat = 17   // Was .small
-   private let dateFontSize: CGFloat = 25   // Keep date slightly larger
+   private let metricFontSize: CGFloat = 19
+   private let metricIconSize: CGFloat = 17
+   private let dateFontSize: CGFloat = 25
 
    private let numberFormatter: NumberFormatter = {
 	  let formatter = NumberFormatter()
@@ -117,7 +113,6 @@ private struct EntryRowView: View {
 
    var body: some View {
 	  VStack(alignment: .leading, spacing: 8) {
-		 // Date and Activity Icons
 		 HStack {
 			Text(entry.date.formatted(date: .abbreviated, time: .omitted))
 			   .font(.system(size: dateFontSize))
@@ -138,7 +133,6 @@ private struct EntryRowView: View {
 			}
 		 }
 
-		 // First Row of Metrics
 		 HStack(spacing: 12) {
 			if let glucose = entry.glucose {
 			   HStack(spacing: 4) {
@@ -183,7 +177,6 @@ private struct EntryRowView: View {
 			}
 		 }
 
-		 // Second Row of Metrics
 		 HStack(spacing: 12) {
 			if let steps = entry.steps {
 			   HStack(spacing: 4) {
@@ -236,7 +229,6 @@ private struct EntryRowView: View {
    let config = ModelConfiguration(isStoredInMemoryOnly: true)
    let container = try! ModelContainer(for: DailyHealthEntry.self, configurations: config)
 
-   // Add some sample data
    let context = ModelContext(container)
    let sampleEntry1 = DailyHealthEntry(
 	  date: .now,

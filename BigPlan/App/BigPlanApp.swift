@@ -78,12 +78,10 @@ class PersistenceController: ObservableObject {
 
 		 container = try ModelContainer(for: schema, configurations: [config])
 
-		 // Monitor CloudKit status and changes
 		 setupCloudKitMonitoring()
 		 setupChangeMonitoring()
 		 setupSyncMonitoring()
 
-		 // Initial data verification
 		 Task { @MainActor in
 			let context = container.mainContext
 			let descriptor = FetchDescriptor<DailyHealthEntry>()
@@ -113,7 +111,6 @@ class PersistenceController: ObservableObject {
 			   case .available:
 				  logger.info(" CloudKit account is available")
 
-				  // Set up database subscription for changes
 				  let database = cloudKitContainer.privateCloudDatabase
 				  let subscription = CKDatabaseSubscription(subscriptionID: "all-changes")
 
@@ -142,7 +139,6 @@ class PersistenceController: ObservableObject {
    }
 
    private func setupSyncMonitoring() {
-	  // Monitor for remote changes
 	  NotificationCenter.default.addObserver(
 		 self,
 		 selector: #selector(handleRemoteChange),
@@ -156,7 +152,6 @@ class PersistenceController: ObservableObject {
 		 guard let self = self else { return }
 		 let descriptor = FetchDescriptor<DailyHealthEntry>()
 		 if let count = try? self.container.mainContext.fetchCount(descriptor) {
-			// Only log if count has changed
 			if count != self.lastLoggedCount {
 			   logger.info(" Remote change - Entries changed from \(self.lastLoggedCount) to \(count)")
 			   self.lastLoggedCount = count

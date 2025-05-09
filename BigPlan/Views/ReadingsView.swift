@@ -78,6 +78,10 @@ struct ReadingsView: View {
 			   Text("Blood Pressure")
 				  .foregroundColor((focusedField == .systolic || focusedField == .diastolic) ? .gpGreen : .gray.opacity(0.8))
 				  .font(.system(size: 23))
+				  .lineLimit(2)
+				  .fixedSize(horizontal: false, vertical: true)
+				  .frame(maxWidth: .infinity, alignment: .leading)
+				  .minimumScaleFactor(0.45)
 			   Spacer()
 			   HStack(spacing: 10) {
 				  TextField("", text: $systolic)

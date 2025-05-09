@@ -1,5 +1,5 @@
 //
-//  DailyHealthEntry.swift
+//  BigPlanModel.swift
 //  BigPlan
 //
 //  Created by Grant Perry on 2025-05-05.
@@ -10,7 +10,7 @@ import SwiftData
 
 /// A single day's health metrics, stored locally via SwiftData and synced with CloudKit.
 @Model
-final class DailyHealthEntry {
+final class BigPlanModel {
    var id: UUID = UUID()
 
    var date: Date = Date()

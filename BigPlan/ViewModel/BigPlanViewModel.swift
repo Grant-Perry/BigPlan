@@ -174,7 +174,7 @@ class BigPlanViewModel: ObservableObject {
 		 defer { isSaving = false }
 
 		 do {
-			let entryToSave: DailyHealthEntry // Use a clear name
+			let entryToSave: DailyHealthEntry
 
 			if let currentEntry = self.existingEntry {
 			   entryToSave = currentEntry
@@ -320,18 +320,13 @@ class BigPlanViewModel: ObservableObject {
    /// Verifies the data store content for debugging purposes.
    func verifyDataStore() {
 	  do {
-		 // Make SURE self is used for entries
 		 logger.info("📋 BigPlanViewModel verification - Found \(self.entries.count) entries via computed property")
 
-		 // Make SURE self is used for entries before forEach
 		 self.entries.forEach { entry in
-			// Logger is a static property, doesn't need self
 			logger.info("🔍 ViewModel Entry found - ID: \(entry.id) Date: \(entry.date) Glucose: \(entry.glucose ?? 0)")
 		 }
 
-		 // Optional: Explicit fetch to compare, if desired
 		 let descriptor = FetchDescriptor<DailyHealthEntry>()
-		 // Make SURE self is used for context
 		 let fetchedEntries = try self.context.fetch(descriptor)
 		 logger.info("🔄 ViewModel verification - Found \(fetchedEntries.count) entries via explicit fetch")
 
