@@ -17,6 +17,9 @@ private let logger = Logger(subsystem: "BigPlan", category: "App")
 struct BigPlanApp: App {
    @StateObject private var persistenceController = PersistenceController()
    @State private var showSplash = true
+   @StateObject private var launchBackfillViewModel = BigPlanViewModel(
+	  context: PersistenceController().container.mainContext
+   )
 
    var body: some Scene {
 	  WindowGroup {
@@ -39,6 +42,13 @@ struct BigPlanApp: App {
 				  )
 				  .onAppear {
 					 // Auto-dismiss after 6 seconds
+					 // Launch-time silent backfill, includes today.
+					 Task {
+						let authorized = await HealthKitManager.shared.requestAuthorization()
+						if authorized {
+						   await launchBackfillViewModel.backfillMissingEntries()
+						}
+					 }
 					 DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
 						withAnimation {
 						   showSplash = false

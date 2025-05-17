@@ -45,6 +45,7 @@ struct DailyFormView: View {
 					 // Form Content
 					 FormContentView(bigPlanViewModel: bigPlanViewModel, selectedTab: $selectedTab)
 						.padding(.horizontal)
+						.offset(y: -25)
 				  }
 			   }
 			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)

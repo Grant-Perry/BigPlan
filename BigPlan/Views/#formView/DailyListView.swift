@@ -282,11 +282,11 @@ private struct WeightMetricView: View {
 			   Text("Last:")
 				  .foregroundStyle(.gray)
 				  .font(.system(size: smallMetricFontSize))
-			   Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
-				  .foregroundStyle(isUp ? .red : .green)
+			   Image(systemName: isUp ? "arrow.up" : "arrow.down")
+				  .foregroundStyle(isUp ? .green : .green)
 				  .font(.system(size: smallMetricFontSize))
 			   Text("\(formatter.string(from: NSNumber(value: diff)) ?? "0")")
-				  .foregroundStyle(isUp ? .red : .green)
+				  .foregroundStyle(isUp ? .green : .green)
 				  .font(.system(size: smallMetricFontSize))
 			}
 		 }

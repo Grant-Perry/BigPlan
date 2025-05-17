@@ -235,10 +235,10 @@ private struct WeightComparisons: View {
 			HStack(spacing: 4) {
 			   Text("Last:")
 				  .foregroundStyle(.gray)
-			   Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
-				  .foregroundStyle(isUp ? .red : .green)
+			   Image(systemName: isUp ? "arrow.up" : "arrow.down")
+				  .foregroundStyle(isUp ? .green : .green)
 			   Text(String(format: "%.1f", diff))
-				  .foregroundStyle(isUp ? .red : .green)
+				  .foregroundStyle(isUp ? .green : .green)
 			   Text("lbs")
 				  .foregroundStyle(.gray)
 			}
@@ -249,9 +249,8 @@ private struct WeightComparisons: View {
 			HStack(spacing: 4) {
 			   Text("Remain:")
 				  .foregroundStyle(.gray)
-//			  Also, for Edit/New Entry, make the .opacity(0.75) and under it put a large sfsymbol that represents editing or creating a record
 			   Text(String(format: "%.1f", diff))
-				  .foregroundStyle(isUp ? .red : .green)
+				  .foregroundStyle(isUp ? .green : .green)
 			   Text("lbs")
 				  .foregroundStyle(.gray)
 			}

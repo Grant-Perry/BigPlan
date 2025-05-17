@@ -16,12 +16,12 @@ private let logger = Logger(subsystem: "BigPlan", category: "BigPlanViewModel")
 @Observable
 class BigPlanViewModel: ObservableObject {
    // MARK: - Stored Properties
-
+   
    /// The SwiftData context for persistence operations.
    private let context: ModelContext
-
-   private var existingEntry: DailyHealthEntry?
-
+   
+   var existingEntry: DailyHealthEntry?
+   
    /// All saved entries, sorted by date descending.
    var entries: [DailyHealthEntry] {
 	  (try? context.fetch(
@@ -30,24 +30,54 @@ class BigPlanViewModel: ObservableObject {
 		 )
 	  )) ?? []
    }
-
+   
    private(set) var healthKitAuthorized: Bool = false
-
+   
    var isWeatherLoaded: Bool = false
    var isLoadingWeather: Bool = false
-
+   
    private var _hasUnsavedChanges: Bool = false
-
+   
    var hasUnsavedChanges: Bool {
 	  get { _hasUnsavedChanges }
 	  set { _hasUnsavedChanges = newValue }
    }
-
+   
    var isSaving = false
    var isInitializing = false
-
+   
    let formInstanceId: UUID
-
+   
+   var weekStepsTotal: Int {
+	  let calendar = Calendar.current
+	  let today = calendar.startOfDay(for: .now)
+	  let allEntries = entries
+	  var total = 0
+	  for offset in 0..<7 {
+		 if let date = calendar.date(byAdding: .day, value: -offset, to: today) {
+			if let entry = allEntries.first(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
+			   total += entry.steps ?? 0
+			}
+		 }
+	  }
+	  return total
+   }
+   
+   var weekStepsTotal1: Int {
+	  let calendar = Calendar.current
+	  let today = calendar.startOfDay(for: .now)
+	  let allEntries = entries
+	  var total = 0
+	  for offset in 0..<7 {
+		 if let date = calendar.date(byAdding: .day, value: -offset, to: today) {
+			if let entry = allEntries.first(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
+			   total += entry.steps ?? 0
+			}
+		 }
+	  }
+	  return total
+   }
+   
    // MARK: - Form State Properties
    var date: Date = .now
    var wakeTime: Date = .now
@@ -66,7 +96,7 @@ class BigPlanViewModel: ObservableObject {
    var rlt: String? = nil
    var weatherData: String? = nil
    var notes: String? = nil
-
+   
    var formValues: [String: Any] {
 	  [
 		 "glucose": glucose as Any,
@@ -85,7 +115,7 @@ class BigPlanViewModel: ObservableObject {
 		 "notes": notes as Any
 	  ]
    }
-
+   
    var formValuesString: String {
    """
    glucose:\(String(describing: glucose))
@@ -104,16 +134,16 @@ class BigPlanViewModel: ObservableObject {
    notes:\(String(describing: notes))
    """
    }
-
+   
    // MARK: - Weight Comparison Properties
    var lastEntryWeight: Double? {
 	  // Skip the current entry if we're editing
 	  let currentEntryId = existingEntry?.id
-
+	  
 	  let descriptor = FetchDescriptor<DailyHealthEntry>(
 		 sortBy: [SortDescriptor(\DailyHealthEntry.date, order: .reverse)]
 	  )
-
+	  
 	  if let entries = try? context.fetch(descriptor) {
 		 // Find the last entry that has a weight and isn't the current entry
 		 return entries.first { entry in
@@ -122,28 +152,28 @@ class BigPlanViewModel: ObservableObject {
 	  }
 	  return nil
    }
-
+   
    var goalWeight: Double? {
 	  let descriptor = FetchDescriptor<Settings>()
 	  return try? context.fetch(descriptor).first?.weightTarget ?? 100.0
    }
-
+   
    var weightDiffFromLastEntry: (diff: Double, isUp: Bool)? {
 	  guard let currentWeight = weight,
 			let lastWeight = lastEntryWeight else { return nil }
 	  let diff = currentWeight - lastWeight
 	  return (abs(diff), diff > 0)
    }
-
+   
    var weightDiffFromGoal: (diff: Double, isUp: Bool)? {
 	  guard let currentWeight = weight,
 			let goalWeight = goalWeight else { return nil }
 	  let diff = currentWeight - goalWeight
 	  return (abs(diff), diff > 0)
    }
-
+   
    // MARK: - Initialization
-
+   
    /// Initializes the ViewModel with the given SwiftData context, optionally loading an existing entry.
    /// - Parameters:
    ///   - context: The ModelContext provided by SwiftData.
@@ -152,15 +182,15 @@ class BigPlanViewModel: ObservableObject {
 	  self.context = context
 	  self.existingEntry = existingEntry
 	  self.formInstanceId = existingEntry?.id ?? UUID() // Use existing entry's ID or a new UUID for new entries
-
+	  
 	  // Original logging for debugging:
 	  // logger.debug("BigPlanViewModel initialized. Has existingEntry: \(existingEntry != nil, privacy: .public), ID: \(existingEntry?.id.uuidString ?? "N/A", privacy: .public), FormInstanceID: \(self.formInstanceId.uuidString, privacy: .public)")
 	  self.isInitializing = true
 	  logger.debug("BigPlanViewModel init: isInitializing synchronously set to true. FormInstanceID: \(self.formInstanceId.uuidString, privacy: .public)")
-
-
+	  
+	  
 	  Task {
-
+		 
 		 if let entry = existingEntry {
 			self.date = entry.date
 			self.wakeTime = entry.wakeTime
@@ -180,11 +210,16 @@ class BigPlanViewModel: ObservableObject {
 			self.weatherData = entry.weatherData
 			self.notes = entry.notes
 			logger.debug("Populating VM from existingEntry ID: \(entry.id.uuidString, privacy: .public)")
+			// Calculate and update week steps if not present
+			if entry.weekTotalSteps == nil {
+			   entry.weekTotalSteps = calculateWeekSteps(for: entry.date)
+			   do { try context.save() } catch { }
+			}
 		 } else {
 			logger.debug("Populating VM for a new entry.")
 		 }
-
-
+		 
+		 
 		 let healthKitAuthorization = await HealthKitManager.shared.requestAuthorization()
 		 self.healthKitAuthorized = healthKitAuthorization
 		 if healthKitAuthorization && existingEntry == nil {
@@ -201,18 +236,18 @@ class BigPlanViewModel: ObservableObject {
 		 logger.debug("BigPlanViewModel async setup complete: isInitializing set to false. FormInstanceID: \(self.formInstanceId.uuidString, privacy: .public)")
 	  }
    }
-
+   
    // MARK: - CRUD Methods
-
+   
    /// Saves the current form values as a new `DailyHealthEntry`.
    func saveEntry() {
 	  Task {
 		 isSaving = true
 		 defer { isSaving = false }
-
+		 
 		 do {
 			let entryToSave: DailyHealthEntry
-
+			
 			if let currentEntry = self.existingEntry {
 			   entryToSave = currentEntry
 			   // Update properties of 'entryToSave' (which is self.existingEntry)
@@ -236,6 +271,7 @@ class BigPlanViewModel: ObservableObject {
 			   // If weatherData is nil-ed out on form load and re-fetched, this is fine.
 			   entryToSave.weatherData = weatherData
 			   entryToSave.notes = notes
+			   entryToSave.weekTotalSteps = calculateWeekSteps(for: date)
 			} else {
 			   // This is the path for a NEW entry
 			   entryToSave = DailyHealthEntry(
@@ -255,16 +291,17 @@ class BigPlanViewModel: ObservableObject {
 				  wentToGym: wentToGym,
 				  rlt: rlt,
 				  weatherData: weatherData,
-				  notes: notes
+				  notes: notes,
+				  weekTotalSteps: calculateWeekSteps(for: date)
 			   )
 			   context.insert(entryToSave)
 			   self.existingEntry = entryToSave
 			}
-
+			
 			logger.info(" Attempting to save entry: \(entryToSave.id)")
 			try context.save()
 			logger.info(" Save successful")
-
+			
 			let descriptor = FetchDescriptor<DailyHealthEntry>()
 			let savedEntries = try context.fetch(descriptor)
 			logger.info(" Total entries after save: \(savedEntries.count)")
@@ -274,7 +311,7 @@ class BigPlanViewModel: ObservableObject {
 		 }
 	  }
    }
-
+   
    /// Deletes the specified `DailyHealthEntry` from persistence.
    /// - Parameter entry: The entry to delete.
    func delete(_ entry: DailyHealthEntry) {
@@ -286,7 +323,7 @@ class BigPlanViewModel: ObservableObject {
 		 logger.error(" Failed to delete entry: \(error.localizedDescription)")
 	  }
    }
-
+   
    /// Deletes the currently loaded DailyHealthEntry if this ViewModel was initialized in edit mode.
    func deleteThisEntry() {
 	  if let entry = existingEntry {
@@ -300,18 +337,18 @@ class BigPlanViewModel: ObservableObject {
 		 }
 	  }
    }
-
+   
    func requestHealthKitAuthorization() async {
 	  self.healthKitAuthorized = await HealthKitManager.shared.requestAuthorization()
 	  if healthKitAuthorized {
 		 await fetchTodaySteps()
 	  }
    }
-
+   
    func fetchTodaySteps() async {
 	  // When refreshing steps, we want to fetch regardless of existing value
 	  await HealthKitManager.shared.fetchTodaySteps()
-
+	  
 	  let currentHKSteps = HealthKitManager.shared.todaySteps
 	  if currentHKSteps > 0 {
 		 self.steps = currentHKSteps
@@ -321,7 +358,7 @@ class BigPlanViewModel: ObservableObject {
 		 }
 	  }
    }
-
+   
    func fetchAndAppendWeather() async {
 	  // If we're editing an entry not for today and it already has weather, don't overwrite.
 	  if let existing = existingEntry, !Calendar.current.isDateInToday(existing.date), existing.weatherData != nil {
@@ -330,50 +367,157 @@ class BigPlanViewModel: ObservableObject {
 	  // If it's a new entry, or today's entry, or an old entry without weather, try to fetch.
 	  // Also prevent re-fetching if weather is already loaded in this VM session and it's not a new day.
 	  guard !isWeatherLoaded || existingEntry == nil || Calendar.current.isDateInToday(date) else { return }
-
-
+	  
+	  
 	  isLoadingWeather = true
 	  defer { isLoadingWeather = false }
-
+	  
 	  if let location = LocationManager.shared.location {
 		 await WeatherKitManager.shared.fetchWeather(for: location)
 		 if let weatherString = WeatherKitManager.shared.weatherData {
 			self.weatherData = weatherString
 			isWeatherLoaded = true // Mark that weather has been loaded in this VM session
-
+			
 			// saveEntry()
 			return
 		 }
 	  }
-
+	  
 	  if LocationManager.shared.authorizationStatus == .notDetermined {
 		 LocationManager.shared.requestAuthorization()
 	  }
-
+	  
 	  LocationManager.shared.startUpdatingLocation()
    }
-
-
+   
+   /// Fetch step count for a date (async, HK)
+   private func fetchSteps(for date: Date) async -> Int {
+	  await HealthKitManager.shared.fetchSteps(for: date)
+	  return HealthKitManager.shared.todaySteps
+   }
+   
+   /// Auto-create DailyHealthEntry objects for missing days (including today), filling step count from HealthKit.
+   func backfillMissingEntries() async {
+	  // Get all entry dates (at midnight)
+	  let allDates = entries.map { Calendar.current.startOfDay(for: $0.date) }
+	  let today = Calendar.current.startOfDay(for: .now)
+	  
+	  // If there are no records at all, just create for today (and bail)
+	  if allDates.isEmpty {
+		 let steps = await fetchSteps(for: today)
+		 let entry = DailyHealthEntry(
+			date: today,
+			wakeTime: today,
+			glucose: nil,
+			ketones: nil,
+			bloodPressure: nil,
+			weight: nil,
+			sleepTime: nil,
+			stressLevel: nil,
+			walkedAM: false,
+			walkedPM: false,
+			firstMealTime: nil,
+			lastMealTime: nil,
+			steps: steps,
+			wentToGym: false,
+			rlt: nil,
+			weatherData: nil,
+			notes: nil,
+			weekTotalSteps: calculateWeekSteps(for: today)
+		 )
+		 context.insert(entry)
+		 do {
+			try context.save()
+			logger.info("Backfilled first (today) entry.")
+		 } catch {
+			logger.error("Backfill failed: \(error.localizedDescription)")
+		 }
+		 return
+	  }
+	  
+	  guard let earliest = allDates.min() else { return }
+	  
+	  var date = earliest
+	  var missingDates: [Date] = []
+	  
+	  // Go up to & including today
+	  while date <= today {
+		 if !allDates.contains(date) {
+			missingDates.append(date)
+		 }
+		 guard let next = Calendar.current.date(byAdding: .day, value: 1, to: date) else { break }
+		 date = next
+	  }
+	  
+	  // Don't do anything if there are no gaps
+	  guard !missingDates.isEmpty else { return }
+	  
+	  for missingDate in missingDates {
+		 let steps = await fetchSteps(for: missingDate)
+		 let entry = DailyHealthEntry(
+			date: missingDate,
+			wakeTime: missingDate,
+			glucose: nil,
+			ketones: nil,
+			bloodPressure: nil,
+			weight: nil,
+			sleepTime: nil,
+			stressLevel: nil,
+			walkedAM: false,
+			walkedPM: false,
+			firstMealTime: nil,
+			lastMealTime: nil,
+			steps: steps,
+			wentToGym: false,
+			rlt: nil,
+			weatherData: nil,
+			notes: nil,
+			weekTotalSteps: calculateWeekSteps(for: missingDate)
+		 )
+		 context.insert(entry)
+	  }
+	  do {
+		 try context.save()
+		 logger.info("Backfilled \(missingDates.count) missing DailyHealthEntry record(s) (including today if needed).")
+	  } catch {
+		 logger.error("Backfill failed: \(error.localizedDescription)")
+	  }
+   }
+   
    /// Verifies the data store content for debugging purposes.
    func verifyDataStore() {
 	  do {
 		 logger.info(" BigPlanViewModel verification - Found \(self.entries.count) entries via computed property")
-
+		 
 		 self.entries.forEach { entry in
 			logger.info(" ViewModel Entry found - ID: \(entry.id) Date: \(entry.date) Glucose: \(entry.glucose ?? 0)")
 		 }
-
+		 
 		 let descriptor = FetchDescriptor<DailyHealthEntry>()
 		 let fetchedEntries = try self.context.fetch(descriptor)
 		 logger.info(" ViewModel verification - Found \(fetchedEntries.count) entries via explicit fetch")
-
+		 
 	  } catch {
 		 logger.error(" Failed to verify data store from ViewModel: \(error.localizedDescription)")
 	  }
    }
-
+   
    /// Indicates whether this view model is editing an existing entry.
    var isEditing: Bool {
 	  return existingEntry != nil
+   }
+   
+   func calculateWeekSteps(for targetDate: Date) -> Int {
+	  let calendar = Calendar.current
+	  let allEntries = entries
+	  var total = 0
+	  for offset in 0..<7 {
+		 if let date = calendar.date(byAdding: .day, value: -offset, to: targetDate) {
+			if let entry = allEntries.first(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
+			   total += entry.steps ?? 0
+			}
+		 }
+	  }
+	  return total
    }
 }

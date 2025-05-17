@@ -70,4 +70,39 @@ class HealthKitManager: ObservableObject {
 		 logger.error("Failed to fetch steps: \(error.localizedDescription)")
 	  }
    }
+
+   /// Fetch steps for a custom date (not just today)
+   func fetchSteps(for targetDate: Date) async {
+	  let stepsQuantityType = HKQuantityType(.stepCount)
+	  let startOfDay = Calendar.current.startOfDay(for: targetDate)
+	  guard let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay) else { return }
+
+	  let predicate = HKQuery.predicateForSamples(
+		 withStart: startOfDay,
+		 end: endOfDay
+	  )
+
+	  do {
+		 let sumOfSteps = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Double, Error>) in
+			let query = HKStatisticsQuery(
+			   quantityType: stepsQuantityType,
+			   quantitySamplePredicate: predicate,
+			   options: .cumulativeSum
+			) { _, statistics, error in
+			   if let error = error {
+				  continuation.resume(throwing: error)
+				  return
+			   }
+			   let steps = statistics?.sumQuantity()?.doubleValue(for: .count()) ?? 0
+			   continuation.resume(returning: steps)
+			}
+			self.healthStore.execute(query)
+		 }
+		 logger.info("Fetched \(Int(sumOfSteps)) steps for \(startOfDay)")
+		 self.todaySteps = Int(sumOfSteps)
+	  } catch {
+		 logger.error("Failed to fetch steps: \(error.localizedDescription)")
+		 self.todaySteps = 0
+	  }
+   }
 }

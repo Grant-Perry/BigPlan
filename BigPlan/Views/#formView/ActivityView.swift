@@ -108,32 +108,12 @@ struct ActivityView: View {
 				  ProgressView()
 					 .scaleEffect(1.2)
 			   } else if bigPlanViewModel.healthKitAuthorized {
-				  HStack(spacing: 12) {
-					 TextField("", value: $bigPlanViewModel.steps, format: .number)
-						.keyboardType(.numberPad)
-						.multilineTextAlignment(.trailing)
-						.frame(width: 120)
-						.focused($isStepsFocused)
+				  VStack(alignment: .trailing, spacing: 2) {
+					 Text("\((bigPlanViewModel.steps ?? 0).formatted(.number.grouping(.automatic))) steps")
 						.font(.system(size: 19))
-						.placeholder(when: bigPlanViewModel.steps == nil) {
-						   Text("steps")
-							  .foregroundColor(isStepsFocused ? .gpGreen : .gray.opacity(0.3))
-							  .font(.system(size: 19))
-						}
-
-					 if !bigPlanViewModel.isEditing || isToday {
-						Button {
-						   Task {
-							  isFetchingSteps = true
-							  await bigPlanViewModel.fetchTodaySteps()
-							  isFetchingSteps = false
-						   }
-						} label: {
-						   Image(systemName: "arrow.clockwise")
-							  .foregroundColor(.accentColor)
-							  .font(.system(size: 19))
-						}
-					 }
+					 Text("Week Total: \((bigPlanViewModel.existingEntry?.weekTotalSteps ?? bigPlanViewModel.calculateWeekSteps(for: bigPlanViewModel.date)).formatted(.number.grouping(.automatic)))")
+						.font(.system(size: 16))
+						.foregroundColor(.secondary)
 				  }
 			   } else {
 				  Button("Sync") {
