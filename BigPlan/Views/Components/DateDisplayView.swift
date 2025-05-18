@@ -1,51 +1,46 @@
 import SwiftUI
 
 struct DateDisplayView: View {
-   let date: Date
+   var date: Date
    @Binding var selectedDate: Date
 
-   private func formattedDate(_ date: Date) -> (month: String, day: String, year: String) {
-	  let monthFormatter = DateFormatter()
-	  monthFormatter.dateFormat = "MMM"
-	  let month = monthFormatter.string(from: date).uppercased()
-
-	  let dayFormatter = DateFormatter()
-	  dayFormatter.dateFormat = "dd"
-	  let day = dayFormatter.string(from: date)
-
-	  let yearFormatter = DateFormatter()
-	  yearFormatter.dateFormat = "yyyy"
-	  let year = yearFormatter.string(from: date)
-
-	  return (month, day, year)
-   }
-
    var body: some View {
-	  let dateComponents = formattedDate(date)
-	  VStack(alignment: .trailing, spacing: 0) {
-		 Text(dateComponents.month)
-			.font(.system(size: 52, weight: .heavy))
-			.foregroundColor(.gpWhite)
-			.kerning(-2)
+	  HStack(alignment: .top, spacing: 0) {
+		 // MARK: Weekday 3 letter rotated
+		 Text(date.formatted(.dateTime.weekday(.abbreviated)).uppercased())
+			.font(.system(size: 18, weight: .medium))
+			.foregroundColor(.gpGreen.opacity(0.5))
+			.rotationEffect(.degrees(-90))
+			.fixedSize()
+			.frame(height: 55)
+			.padding(.trailing, 3)
+			.offset(x: 8, y: 0)
 
-		 Text(dateComponents.day)
-			.font(.system(size: 48, weight: .bold))
-			.foregroundColor(.gpRed)
-			.kerning(-1)
-			.offset(y: -15)
+		 //MARK: Month
+		 VStack(alignment: .trailing, spacing: -3) {
+			Text(date.formatted(.dateTime.month(.wide)).uppercased())
+			   .font(.system(size: 63, weight: .bold))
+			   .foregroundColor(.white)
+			   .lineLimit(1)
 
-		 Text(dateComponents.year)
-			.font(.system(size: 16, weight: .bold))
-			.foregroundColor(.gpWhite)
-			.opacity(0.4)
-			.offset(y: -25)
+			//MARK: Day Number
+			Text(date.formatted(.dateTime.day()))
+			   .font(.system(size: 70, weight: .bold))
+			   .foregroundColor(.gpRed)
+			   .minimumScaleFactor(0.7)
+			   .offset(y: -25)
+
+			//MARK: Year
+			Text(date.formatted(.dateTime.year()))
+			   .font(.system(size: 19, weight: .medium))
+			   .foregroundColor(.gray)
+			   .offset(x: -8, y: -36)
+
+		 }
 	  }
-	  .padding(.vertical, 8)
-	  .padding(.horizontal, 12)
-//	  .background(
-//		 RoundedRectangle(cornerRadius: 18)
-//			.fill(Color.white.opacity(0.4))
-//	  )
+	  .frame(maxWidth: .infinity, alignment: .trailing)
+	  .padding(.trailing, 8)
+	  .padding(.bottom, 14)
 	  .overlay {
 		 DatePicker(
 			"Entry Date",

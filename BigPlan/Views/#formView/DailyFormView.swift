@@ -12,12 +12,14 @@ struct DailyFormView: View {
    @Environment(\.dismiss) private var dismiss
    @State private var showingDismissAlert = false
    @State private var isLoading = true
-   
+   @State private var liveSteps: Int = 0
+   @State private var showingSyncAlert = false
+
    private func completeAction() {
 	  dismiss()
 	  selectedTab = 0
    }
-   
+
    private func handleDismiss() {
 	  if bigPlanViewModel.hasUnsavedChanges {
 		 showingDismissAlert = true
@@ -25,7 +27,7 @@ struct DailyFormView: View {
 		 completeAction()
 	  }
    }
-   
+
    var body: some View {
 	  NavigationStack {
 		 ZStack {
@@ -41,9 +43,9 @@ struct DailyFormView: View {
 						DateDisplayView(date: bigPlanViewModel.date, selectedDate: $bigPlanViewModel.date)
 					 }
 					 .padding(.horizontal)
-					 
+
 					 // Form Content
-					 FormContentView(bigPlanViewModel: bigPlanViewModel, selectedTab: $selectedTab)
+					 FormContentView(bigPlanViewModel: bigPlanViewModel, selectedTab: $selectedTab, liveSteps: $liveSteps)
 						.padding(.horizontal)
 						.offset(y: -25)
 				  }
@@ -51,7 +53,7 @@ struct DailyFormView: View {
 			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
 			   .opacity(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving ? 0.6 : 1.0)
 			}
-			
+
 			// Loading Overlay
 			if bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving {
 			   LoadingView()
@@ -80,12 +82,21 @@ struct DailyFormView: View {
 			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
 			}
 			ToolbarItem(placement: .navigationBarTrailing) {
-			   Button("Done") {
-				  bigPlanViewModel.saveEntry()
-				  completeAction()
+			   HStack(spacing: 18) {
+				  Button("Done") {
+					 bigPlanViewModel.steps = liveSteps // SYNC actual steps
+					 bigPlanViewModel.saveEntry()
+					 completeAction()
+				  }
+				  .font(.system(size: 23))
+				  .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
+
+				  Button {
+					 showingSyncAlert = true
+				  } label: {
+					 Image(systemName: "arrow.clockwise.circle")
+				  }
 			   }
-			   .font(.system(size: 23))
-			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
 			}
 		 }
 		 .alert("Save Changes?", isPresented: $showingDismissAlert) {
@@ -93,18 +104,33 @@ struct DailyFormView: View {
 			   completeAction()
 			}
 			.font(.system(size: 23))
-			
+
 			Button("Save") {
 			   bigPlanViewModel.saveEntry()
 			   completeAction()
 			}
 			.font(.system(size: 23))
-			
+
 			Button("Cancel", role: .cancel) { }
 			   .font(.system(size: 23))
 		 } message: {
 			Text("Would you like to save your changes before exiting?")
 			   .font(.system(size: 23))
+		 }
+		 .alert("Replace existing data?", isPresented: $showingSyncAlert) {
+			Button("Replace All", role: .destructive) {
+			   Task {
+				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: true)
+			   }
+			}
+			Button("Fill Empty Only") {
+			   Task {
+				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: false)
+			   }
+			}
+			Button("Cancel", role: .cancel) { }
+		 } message: {
+			Text("Do you want to overwrite all fields with Apple Health data, or only fill empty fields?")
 		 }
 	  }
 	  .preferredColorScheme(.dark)

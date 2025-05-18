@@ -23,6 +23,14 @@ final class DailyHealthEntry {
    var weatherData: String?
    @Attribute(.externalStorage) var notes: String?
    var weekTotalSteps: Int?
+   var hkUpdatedGlucose: Bool = false
+   var hkUpdatedKetones: Bool = false
+   var hkUpdatedBloodPressure: Bool = false
+   var hkUpdatedWeight: Bool = false
+   var hkUpdatedHeartRate: Bool = false
+   var hkUpdatedSleepTime: Bool = false
+   var hkUpdatedSteps: Bool = false
+   var heartRate: Double?
    
    init(
 	  id: UUID = UUID(),
@@ -43,7 +51,15 @@ final class DailyHealthEntry {
 	  rlt: String? = nil,
 	  weatherData: String? = nil,
 	  notes: String? = nil,
-	  weekTotalSteps: Int? = nil
+	  weekTotalSteps: Int? = nil,
+	  hkUpdatedGlucose: Bool = false,
+	  hkUpdatedKetones: Bool = false,
+	  hkUpdatedBloodPressure: Bool = false,
+	  hkUpdatedWeight: Bool = false,
+	  hkUpdatedHeartRate: Bool = false,
+	  hkUpdatedSleepTime: Bool = false,
+	  hkUpdatedSteps: Bool = false,
+	  heartRate: Double? = nil
    ) {
 	  self.id = id
 	  self.date = date
@@ -64,5 +80,13 @@ final class DailyHealthEntry {
 	  self.weatherData = weatherData
 	  self.notes = notes
 	  self.weekTotalSteps = weekTotalSteps
+	  self.hkUpdatedGlucose = hkUpdatedGlucose
+	  self.hkUpdatedKetones = hkUpdatedKetones
+	  self.hkUpdatedBloodPressure = hkUpdatedBloodPressure
+	  self.hkUpdatedWeight = hkUpdatedWeight
+	  self.hkUpdatedHeartRate = hkUpdatedHeartRate
+	  self.hkUpdatedSleepTime = hkUpdatedSleepTime
+	  self.hkUpdatedSteps = hkUpdatedSteps
+	  self.heartRate = heartRate
    }
 }

@@ -96,6 +96,7 @@ class BigPlanViewModel: ObservableObject {
    var rlt: String? = nil
    var weatherData: String? = nil
    var notes: String? = nil
+   var heartRate: Double? = nil
    
    var formValues: [String: Any] {
 	  [
@@ -188,9 +189,7 @@ class BigPlanViewModel: ObservableObject {
 	  self.isInitializing = true
 	  logger.debug("BigPlanViewModel init: isInitializing synchronously set to true. FormInstanceID: \(self.formInstanceId.uuidString, privacy: .public)")
 	  
-	  
 	  Task {
-		 
 		 if let entry = existingEntry {
 			self.date = entry.date
 			self.wakeTime = entry.wakeTime
@@ -209,8 +208,8 @@ class BigPlanViewModel: ObservableObject {
 			self.rlt = entry.rlt
 			self.weatherData = entry.weatherData
 			self.notes = entry.notes
+			self.heartRate = entry.heartRate // CRITICAL FOR FORM PREFILL
 			logger.debug("Populating VM from existingEntry ID: \(entry.id.uuidString, privacy: .public)")
-			// Calculate and update week steps if not present
 			if entry.weekTotalSteps == nil {
 			   entry.weekTotalSteps = calculateWeekSteps(for: entry.date)
 			   do { try context.save() } catch { }
@@ -218,7 +217,6 @@ class BigPlanViewModel: ObservableObject {
 		 } else {
 			logger.debug("Populating VM for a new entry.")
 		 }
-		 
 		 
 		 let healthKitAuthorization = await HealthKitManager.shared.requestAuthorization()
 		 self.healthKitAuthorized = healthKitAuthorization
@@ -250,7 +248,7 @@ class BigPlanViewModel: ObservableObject {
 			
 			if let currentEntry = self.existingEntry {
 			   entryToSave = currentEntry
-			   // Update properties of 'entryToSave' (which is self.existingEntry)
+			   // Copy over ALL properties each save (don't lose fields!)
 			   entryToSave.date = date
 			   entryToSave.wakeTime = wakeTime
 			   entryToSave.glucose = glucose
@@ -272,8 +270,9 @@ class BigPlanViewModel: ObservableObject {
 			   entryToSave.weatherData = weatherData
 			   entryToSave.notes = notes
 			   entryToSave.weekTotalSteps = calculateWeekSteps(for: date)
+			   entryToSave.heartRate = heartRate
 			} else {
-			   // This is the path for a NEW entry
+			   // Full model for NEW entry
 			   entryToSave = DailyHealthEntry(
 				  date: date,
 				  wakeTime: wakeTime,
@@ -292,7 +291,8 @@ class BigPlanViewModel: ObservableObject {
 				  rlt: rlt,
 				  weatherData: weatherData,
 				  notes: notes,
-				  weekTotalSteps: calculateWeekSteps(for: date)
+				  weekTotalSteps: calculateWeekSteps(for: date),
+				  heartRate: heartRate
 			   )
 			   context.insert(entryToSave)
 			   self.existingEntry = entryToSave
@@ -368,7 +368,6 @@ class BigPlanViewModel: ObservableObject {
 	  // Also prevent re-fetching if weather is already loaded in this VM session and it's not a new day.
 	  guard !isWeatherLoaded || existingEntry == nil || Calendar.current.isDateInToday(date) else { return }
 	  
-	  
 	  isLoadingWeather = true
 	  defer { isLoadingWeather = false }
 	  
@@ -377,8 +376,6 @@ class BigPlanViewModel: ObservableObject {
 		 if let weatherString = WeatherKitManager.shared.weatherData {
 			self.weatherData = weatherString
 			isWeatherLoaded = true // Mark that weather has been loaded in this VM session
-			
-			// saveEntry()
 			return
 		 }
 	  }
@@ -392,8 +389,7 @@ class BigPlanViewModel: ObservableObject {
    
    /// Fetch step count for a date (async, HK)
    private func fetchSteps(for date: Date) async -> Int {
-	  await HealthKitManager.shared.fetchSteps(for: date)
-	  return HealthKitManager.shared.todaySteps
+	  await HealthKitManager.shared.steps(for: date)
    }
    
    /// Auto-create DailyHealthEntry objects for missing days (including today), filling step count from HealthKit.
@@ -507,6 +503,93 @@ class BigPlanViewModel: ObservableObject {
 	  return existingEntry != nil
    }
    
+   // MARK: - Internal state to manage source of update (only true during syncWithHealthKit)
+   var isSyncingFromHK = false
+   
+   var hkUpdatedGlucose: Bool {
+	  get { existingEntry?.hkUpdatedGlucose ?? false }
+	  set { existingEntry?.hkUpdatedGlucose = newValue }
+   }
+   var hkUpdatedKetones: Bool {
+	  get { existingEntry?.hkUpdatedKetones ?? false }
+	  set { existingEntry?.hkUpdatedKetones = newValue }
+   }
+   var hkUpdatedBloodPressure: Bool {
+	  get { existingEntry?.hkUpdatedBloodPressure ?? false }
+	  set { existingEntry?.hkUpdatedBloodPressure = newValue }
+   }
+   var hkUpdatedWeight: Bool {
+	  get { existingEntry?.hkUpdatedWeight ?? false }
+	  set { existingEntry?.hkUpdatedWeight = newValue }
+   }
+   var hkUpdatedHeartRate: Bool {
+	  get { existingEntry?.hkUpdatedHeartRate ?? false }
+	  set { existingEntry?.hkUpdatedHeartRate = newValue }
+   }
+   var hkUpdatedSleepTime: Bool {
+	  get { existingEntry?.hkUpdatedSleepTime ?? false }
+	  set { existingEntry?.hkUpdatedSleepTime = newValue }
+   }
+   var hkUpdatedSteps: Bool {
+	  get { existingEntry?.hkUpdatedSteps ?? false }
+	  set { existingEntry?.hkUpdatedSteps = newValue }
+   }
+   
+   @MainActor
+   func syncWithHealthKit(overwrite: Bool) async {
+	  let date = self.date
+	  isSyncingFromHK = true
+	  
+	  async let hkGlucose = HealthKitManager.shared.bloodGlucose(for: date)
+	  async let hkSleep = HealthKitManager.shared.fetchSleepAnalysis(for: date)
+	  async let hkHeartRate = HealthKitManager.shared.fetchHeartRate(for: date)
+	  async let hkSteps = HealthKitManager.shared.steps(for: date)
+	  
+	  let glucose = await hkGlucose
+	  let sleep = await hkSleep
+	  let heartRate = await hkHeartRate
+	  let steps = await hkSteps
+	  
+	  print("DP: HealthKit [date=\(date)] glucose: \(String(describing: glucose))")
+	  print("DP: HealthKit [date=\(date)] sleep: \(String(describing: sleep))")
+	  print("DP: HealthKit [date=\(date)] heartRate: \(String(describing: heartRate))")
+	  print("DP: HealthKit [date=\(date)] steps: \(String(describing: steps))")
+	  
+	  if let entry = existingEntry {
+		 if overwrite || entry.glucose == nil {
+			entry.glucose = glucose
+			entry.hkUpdatedGlucose = (glucose != nil)
+			self.glucose = glucose
+			self.hkUpdatedGlucose = (glucose != nil)
+		 }
+		 if overwrite || entry.sleepTime == nil || entry.sleepTime?.isEmpty == true {
+			entry.sleepTime = sleep
+			entry.hkUpdatedSleepTime = (sleep != nil)
+			self.sleepTime = sleep
+			self.hkUpdatedSleepTime = (sleep != nil)
+		 }
+		 if overwrite || entry.heartRate == nil {
+			entry.heartRate = heartRate
+			entry.hkUpdatedHeartRate = (heartRate != nil)
+			self.heartRate = heartRate
+			self.hkUpdatedHeartRate = (heartRate != nil)
+		 }
+		 if overwrite || entry.steps == nil {
+			entry.steps = steps
+			entry.hkUpdatedSteps = (steps > 0)
+			self.steps = steps
+			self.hkUpdatedSteps = (steps > 0)
+		 }
+		 // ...repeat for other metrics/flags if needed...
+		 do {
+			try context.save()
+		 } catch {
+			print("DP: Error saving entry: \(error)")
+		 }
+	  }
+	  isSyncingFromHK = false
+   }
+   
    func calculateWeekSteps(for targetDate: Date) -> Int {
 	  let calendar = Calendar.current
 	  let allEntries = entries
@@ -516,6 +599,22 @@ class BigPlanViewModel: ObservableObject {
 			if let entry = allEntries.first(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
 			   total += entry.steps ?? 0
 			}
+		 }
+	  }
+	  return total
+   }
+   
+   /// Fetches the week total steps directly from HealthKit (today + past 6 days)
+   func fetchWeekHealthKitTotal() async -> Int {
+	  let calendar = Calendar.current
+	  let today = calendar.startOfDay(for: .now)
+	  var total = 0
+	  
+	  // Serial execution so steps add up properly
+	  for offset in 0..<7 {
+		 if let date = calendar.date(byAdding: .day, value: -offset, to: today) {
+			let steps = await HealthKitManager.shared.steps(for: date)
+			total += steps
 		 }
 	  }
 	  return total

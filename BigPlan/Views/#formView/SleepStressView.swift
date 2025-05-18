@@ -140,9 +140,6 @@ struct SleepStressView: View {
 	  .onChange(of: bigPlanViewModel.sleepTime) { _, _ in
 		 updateLocalSleepStrings()
 	  }
-	  .onAppear {
-		 updateLocalSleepStrings()
-	  }
    }
 
    private func updateViewModelSleepTime() {

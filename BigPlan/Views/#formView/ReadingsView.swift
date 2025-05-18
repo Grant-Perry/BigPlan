@@ -1,9 +1,8 @@
-
 import SwiftUI
 
 // MARK: - Form Fields
 enum ReadingsField {
-   case glucose, ketones, systolic, diastolic, weight
+   case glucose, ketones, systolic, diastolic, weight, heartRate, steps
 }
 
 struct ReadingsView: View {
@@ -11,18 +10,18 @@ struct ReadingsView: View {
    @State private var systolic: String = ""
    @State private var diastolic: String = ""
    @FocusState private var focusedField: ReadingsField?
+   @State private var hkUpdatedGlucose = false
+   @State private var hkUpdatedKetones = false
+   @State private var hkUpdatedBP = false
+   @State private var hkUpdatedWeight = false
+   @State private var hkUpdatedHeartRate = false
 
    private let hintSize: CGFloat = AppConstants.hintSize
 
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
-		 Text("READINGS")
-			.font(.system(size: 20, weight: .semibold))
-			.foregroundColor(.white.opacity(0.9))
-			.textCase(.uppercase)
-
+//		 DateHeader(bigPlanViewModel: bigPlanViewModel)
 		 VStack(spacing: 18) {
-			// Glucose Field
 			HStack {
 			   Text("Glucose")
 				  .foregroundColor(focusedField == .glucose ? .gpGreen : .gray.opacity(0.8))
@@ -38,14 +37,19 @@ struct ReadingsView: View {
 						.foregroundColor(focusedField == .glucose ? .gpGreen : .gray.opacity(0.3))
 						.font(.system(size: hintSize))
 				  }
+			   HKBadgeView(show: bigPlanViewModel.hkUpdatedGlucose, hasValue: bigPlanViewModel.glucose != nil)
 			}
 			.formFieldStyle(icon: "drop.fill", hasFocus: focusedField == .glucose)
-			.contentShape(Rectangle()) // Makes entire area tappable
+			.contentShape(Rectangle())
 			.onTapGesture {
 			   focusedField = .glucose
 			}
+			.onChange(of: bigPlanViewModel.glucose) { oldValue, newValue in
+			   if !bigPlanViewModel.isSyncingFromHK {
+				  bigPlanViewModel.hkUpdatedGlucose = false
+			   }
+			}
 
-			// Ketones Field
 			HStack {
 			   Text("Ketones")
 				  .foregroundColor(focusedField == .ketones ? .gpGreen : .gray.opacity(0.8))
@@ -61,14 +65,19 @@ struct ReadingsView: View {
 						.foregroundColor(focusedField == .ketones ? .gpGreen : .gray.opacity(0.3))
 						.font(.system(size: hintSize))
 				  }
+			   HKBadgeView(show: bigPlanViewModel.hkUpdatedKetones, hasValue: bigPlanViewModel.ketones != nil)
 			}
 			.formFieldStyle(icon: "flame.fill", hasFocus: focusedField == .ketones)
-			.contentShape(Rectangle()) // Makes entire area tappable
+			.contentShape(Rectangle())
 			.onTapGesture {
 			   focusedField = .ketones
 			}
+			.onChange(of: bigPlanViewModel.ketones) { oldValue, newValue in
+			   if !bigPlanViewModel.isSyncingFromHK {
+				  bigPlanViewModel.hkUpdatedKetones = false
+			   }
+			}
 
-			// Blood Pressure Field
 			HStack {
 			   Text("Blood Pressure")
 				  .foregroundColor((focusedField == .systolic || focusedField == .diastolic) ? .gpGreen : .gray.opacity(0.8))
@@ -107,9 +116,10 @@ struct ReadingsView: View {
 					 .focused($focusedField, equals: .diastolic)
 					 .font(.system(size: 19))
 			   }
+			   HKBadgeView(show: bigPlanViewModel.hkUpdatedBloodPressure, hasValue: !(systolic.isEmpty || diastolic.isEmpty))
 			}
 			.formFieldStyle(icon: "heart.fill", hasFocus: focusedField == .systolic || focusedField == .diastolic)
-			.contentShape(Rectangle()) // Makes entire area tappable
+			.contentShape(Rectangle())
 			.onTapGesture {
 			   if focusedField == .systolic {
 				  focusedField = .diastolic
@@ -130,13 +140,78 @@ struct ReadingsView: View {
 			   }
 			   updateBloodPressure()
 			}
+			.onChange(of: bigPlanViewModel.bloodPressure) { oldValue, newValue in
+			   if !bigPlanViewModel.isSyncingFromHK {
+				  bigPlanViewModel.hkUpdatedBloodPressure = false
+			   }
+			}
 
-			// Weight Field
+			HStack {
+			   Text("Steps")
+				  .foregroundColor(focusedField == .steps ? .gpGreen : .gray.opacity(0.8))
+				  .font(.system(size: 19))
+			   Spacer()
+			   TextField("", value: $bigPlanViewModel.steps, format: .number)
+				  .keyboardType(.numberPad)
+				  .multilineTextAlignment(.trailing)
+				  .focused($focusedField, equals: .steps)
+				  .font(.system(size: 19))
+				  .placeholder(when: bigPlanViewModel.steps == nil) {
+					 Text("steps")
+						.foregroundColor(focusedField == .steps ? .gpGreen : .gray.opacity(0.3))
+						.font(.system(size: hintSize))
+				  }
+			   HKBadgeView(show: bigPlanViewModel.hkUpdatedSteps, hasValue: bigPlanViewModel.steps != nil)
+			}
+			.formFieldStyle(icon: "figure.walk", hasFocus: focusedField == .steps)
+			.contentShape(Rectangle())
+			.onTapGesture {
+			   focusedField = .steps
+			}
+			.onChange(of: bigPlanViewModel.steps) { oldValue, newValue in
+			   if !bigPlanViewModel.isSyncingFromHK {
+				  bigPlanViewModel.hkUpdatedSteps = false
+			   }
+			}
+
+			HStack {
+			   Text("Heart Rate")
+				  .foregroundColor(focusedField == .heartRate ? .gpGreen : .gray.opacity(0.8))
+				  .font(.system(size: 19))
+			   Spacer()
+			   TextField("", value: $bigPlanViewModel.heartRate, format: .number)
+				  .keyboardType(.decimalPad)
+				  .multilineTextAlignment(.trailing)
+				  .focused($focusedField, equals: .heartRate)
+				  .font(.system(size: 19))
+				  .placeholder(when: bigPlanViewModel.heartRate == nil) {
+					 Text("bpm")
+						.foregroundColor(focusedField == .heartRate ? .gpGreen : .gray.opacity(0.3))
+						.font(.system(size: hintSize))
+				  }
+			   HKBadgeView(show: bigPlanViewModel.hkUpdatedHeartRate, hasValue: bigPlanViewModel.heartRate != nil)
+			}
+			.formFieldStyle(icon: "heart.circle.fill", hasFocus: focusedField == .heartRate)
+			.contentShape(Rectangle())
+			.onTapGesture {
+			   focusedField = .heartRate
+			}
+			.onChange(of: bigPlanViewModel.heartRate) { oldValue, newValue in
+			   if !bigPlanViewModel.isSyncingFromHK {
+				  bigPlanViewModel.hkUpdatedHeartRate = false
+			   }
+			}
+
 			WeightSection(
 			   bigPlanViewModel: bigPlanViewModel,
 			   isFocused: focusedField == .weight,
 			   onTapField: { focusedField = .weight },
 			   hintSize: hintSize
+			)
+			.overlay(
+			   HKBadgeView(show: bigPlanViewModel.hkUpdatedWeight, hasValue: bigPlanViewModel.weight != nil)
+				  .padding(.trailing, 6),
+			   alignment: .trailing
 			)
 		 }
 	  }
@@ -216,6 +291,11 @@ private struct WeightSection: View {
 		 .formFieldStyle(icon: "scalemass.fill", hasFocus: isFocused)
 		 .contentShape(Rectangle())
 		 .onTapGesture(perform: onTapField)
+		 .onChange(of: bigPlanViewModel.weight) { oldValue, newValue in
+			if !bigPlanViewModel.isSyncingFromHK {
+			   bigPlanViewModel.hkUpdatedWeight = false
+			}
+		 }
 
 		 // Weight Comparisons
 		 if bigPlanViewModel.weight != nil {
@@ -260,3 +340,24 @@ private struct WeightComparisons: View {
 	  .padding(.leading, 30)
    }
 }
+
+// MARK: - Date Header
+//struct DateHeader: View {
+//   @ObservedObject var bigPlanViewModel: BigPlanViewModel
+//
+//   var body: some View {
+//	  VStack(alignment: .trailing, spacing: 0) {
+//		 Text(bigPlanViewModel.date.formatted(.dateTime.month(.wide)).uppercased())
+//			.font(.system(size: 35, weight: .bold))
+//			.foregroundColor(.white)
+//			.lineLimit(1)
+//		 Text(bigPlanViewModel.date.formatted(.dateTime.day()))
+//			.font(.system(size: 55, weight: .bold, design: .rounded))
+//			.foregroundColor(.gpRed)
+//			.minimumScaleFactor(0.7)
+//		 Text(bigPlanViewModel.date.formatted(.dateTime.year()))
+//			.font(.system(size: 19, weight: .medium))
+//			.foregroundColor(.gray)
+//	  }
+//   }
+//}

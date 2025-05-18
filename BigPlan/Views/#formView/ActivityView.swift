@@ -14,18 +14,22 @@ struct ActivityView: View {
    @State private var isFetchingSteps = false
    @FocusState private var isStepsFocused: Bool
    @State private var focusedToggle: String?
-
+   @Binding var liveSteps: Int
+   @State private var liveWeekSteps: Int = 0
+   @State private var debounceTimer: Timer?
+   @State private var lastFetchedDate: Date?
+   
    private var isToday: Bool {
 	  Calendar.current.isDateInToday(bigPlanViewModel.date)
    }
-
+   
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
 		 Text("ACTIVITY")
 			.font(.system(size: 20, weight: .semibold))
 			.foregroundColor(.white.opacity(0.9))
 			.textCase(.uppercase)
-
+		 
 		 VStack(spacing: 18) {
 			// Walked AM Toggle
 			HStack {
@@ -43,7 +47,7 @@ struct ActivityView: View {
 			   focusedToggle = "walkedAM"
 			   isStepsFocused = false
 			}
-
+			
 			// Walked PM Toggle
 			HStack {
 			   Text("Walked PM")
@@ -60,7 +64,7 @@ struct ActivityView: View {
 			   focusedToggle = "walkedPM"
 			   isStepsFocused = false
 			}
-
+			
 			// Gym Toggle
 			HStack {
 			   Text("Went to Gym")
@@ -77,7 +81,7 @@ struct ActivityView: View {
 			   focusedToggle = "wentToGym"
 			   isStepsFocused = false
 			}
-
+			
 			// Red Light Therapy Toggle
 			HStack {
 			   Text("Red Light Therapy")
@@ -97,7 +101,7 @@ struct ActivityView: View {
 			   focusedToggle = "rlt"
 			   isStepsFocused = false
 			}
-
+			
 			// Steps Field
 			HStack {
 			   Text("Steps")
@@ -107,20 +111,14 @@ struct ActivityView: View {
 			   if isFetchingSteps {
 				  ProgressView()
 					 .scaleEffect(1.2)
-			   } else if bigPlanViewModel.healthKitAuthorized {
-				  VStack(alignment: .trailing, spacing: 2) {
-					 Text("\((bigPlanViewModel.steps ?? 0).formatted(.number.grouping(.automatic))) steps")
+			   } else {
+				  VStack(alignment: .trailing, spacing: 3) {
+					 Text("\(liveSteps.formatted(.number.grouping(.automatic))) steps")
 						.font(.system(size: 19))
-					 Text("Week Total: \((bigPlanViewModel.existingEntry?.weekTotalSteps ?? bigPlanViewModel.calculateWeekSteps(for: bigPlanViewModel.date)).formatted(.number.grouping(.automatic)))")
+					 Text("Week Total: \(liveWeekSteps.formatted(.number.grouping(.automatic)))")
 						.font(.system(size: 16))
 						.foregroundColor(.secondary)
 				  }
-			   } else {
-				  Button("Sync") {
-					 showHealthKitAuth = true
-				  }
-				  .buttonStyle(.bordered)
-				  .font(.system(size: 19))
 			   }
 			}
 			.contentShape(Rectangle())
@@ -129,11 +127,17 @@ struct ActivityView: View {
 			   isStepsFocused = true
 			   focusedToggle = nil
 			}
+			.onChange(of: bigPlanViewModel.date) { _, newDate in
+			   triggerStepDebouncedFetch(for: newDate)
+			}
 		 }
 	  }
 	  .formSectionStyle()
 	  .animation(.none, value: focusedToggle)
 	  .animation(.none, value: isStepsFocused)
+	  .onAppear {
+		 triggerStepDebouncedFetch(for: bigPlanViewModel.date)
+	  }
 	  .alert("Health Access", isPresented: $showHealthKitAuth) {
 		 Button("Allow Access") {
 			Task {
@@ -146,6 +150,25 @@ struct ActivityView: View {
 	  } message: {
 		 Text("Allow BigPlan to access your step count data from Health?")
 			.font(.system(size: 19))
+	  }
+   }
+   
+   private func triggerStepDebouncedFetch(for date: Date) {
+	  debounceTimer?.invalidate()
+	  debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.7, repeats: false) { _ in
+		 Task {
+			liveSteps = await HealthKitManager.shared.steps(for: date)
+			// Roll live week count for ending with this date:
+			let calendar = Calendar.current
+			var weekTotal = 0
+			for offset in 0..<7 {
+			   if let d = calendar.date(byAdding: .day, value: -offset, to: date) {
+				  weekTotal += await HealthKitManager.shared.steps(for: d)
+			   }
+			}
+			liveWeekSteps = weekTotal
+			lastFetchedDate = date
+		 }
 	  }
    }
 }
