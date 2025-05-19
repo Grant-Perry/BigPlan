@@ -46,9 +46,9 @@ struct DailyListView: View {
 			   bigPlanViewModel: BigPlanViewModel(context: modelContext, existingEntry: entry)
 			)
 		 }
-		 .sheet(isPresented: $showSettings) {
-			SettingsView()
-		 }
+                 .sheet(isPresented: $showSettings) {
+                        SettingsView(modelContext: modelContext)
+                }
 		 .toolbar {
 			ToolbarItem(placement: .navigationBarTrailing) {
 			   Button {

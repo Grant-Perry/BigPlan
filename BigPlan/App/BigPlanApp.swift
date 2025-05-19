@@ -24,8 +24,8 @@ struct BigPlanApp: App {
    var body: some Scene {
 	  WindowGroup {
 		 ZStack {
-			BigPlanTabView()
-			   .environment(\.modelContext, persistenceController.container.mainContext)
+                        BigPlanTabView(modelContext: persistenceController.container.mainContext)
+                           .environment(\.modelContext, persistenceController.container.mainContext)
 
 			if showSplash {
 			   MainSplashView()
