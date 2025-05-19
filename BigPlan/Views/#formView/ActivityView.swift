@@ -18,18 +18,18 @@ struct ActivityView: View {
    @State private var liveWeekSteps: Int = 0
    @State private var debounceTimer: Timer?
    @State private var lastFetchedDate: Date?
-   
+
    private var isToday: Bool {
 	  Calendar.current.isDateInToday(bigPlanViewModel.date)
    }
-   
+
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
 		 Text("ACTIVITY")
 			.font(.system(size: 20, weight: .semibold))
 			.foregroundColor(.white.opacity(0.9))
 			.textCase(.uppercase)
-		 
+
 		 VStack(spacing: 18) {
 			// Walked AM Toggle
 			HStack {
@@ -47,7 +47,7 @@ struct ActivityView: View {
 			   focusedToggle = "walkedAM"
 			   isStepsFocused = false
 			}
-			
+
 			// Walked PM Toggle
 			HStack {
 			   Text("Walked PM")
@@ -64,7 +64,7 @@ struct ActivityView: View {
 			   focusedToggle = "walkedPM"
 			   isStepsFocused = false
 			}
-			
+
 			// Gym Toggle
 			HStack {
 			   Text("Went to Gym")
@@ -81,7 +81,7 @@ struct ActivityView: View {
 			   focusedToggle = "wentToGym"
 			   isStepsFocused = false
 			}
-			
+
 			// Red Light Therapy Toggle
 			HStack {
 			   Text("Red Light Therapy")
@@ -101,7 +101,7 @@ struct ActivityView: View {
 			   focusedToggle = "rlt"
 			   isStepsFocused = false
 			}
-			
+
 			// Steps Field
 			HStack {
 			   Text("Steps")
@@ -113,8 +113,13 @@ struct ActivityView: View {
 					 .scaleEffect(1.2)
 			   } else {
 				  VStack(alignment: .trailing, spacing: 3) {
-					 Text("\(liveSteps.formatted(.number.grouping(.automatic))) steps")
+					 Text("\(liveSteps.formatted(.number.grouping(.automatic)))")
 						.font(.system(size: 19))
+						.overlay(
+						   HKBadgeView(show: bigPlanViewModel.hkUpdatedSteps, hasValue: bigPlanViewModel.steps != nil)
+							  .padding(.leading, 4),
+						   alignment: .trailing
+						)
 					 Text("Week Total: \(liveWeekSteps.formatted(.number.grouping(.automatic)))")
 						.font(.system(size: 16))
 						.foregroundColor(.secondary)
@@ -126,6 +131,11 @@ struct ActivityView: View {
 			.onTapGesture {
 			   isStepsFocused = true
 			   focusedToggle = nil
+			}
+			.onChange(of: bigPlanViewModel.steps) { oldValue, newValue in
+			   if !bigPlanViewModel.isSyncingFromHK {
+				  bigPlanViewModel.hkUpdatedSteps = false
+			   }
 			}
 			.onChange(of: bigPlanViewModel.date) { _, newDate in
 			   triggerStepDebouncedFetch(for: newDate)
@@ -152,7 +162,7 @@ struct ActivityView: View {
 			.font(.system(size: 19))
 	  }
    }
-   
+
    private func triggerStepDebouncedFetch(for date: Date) {
 	  debounceTimer?.invalidate()
 	  debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.7, repeats: false) { _ in

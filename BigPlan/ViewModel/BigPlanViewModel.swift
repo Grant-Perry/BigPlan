@@ -63,21 +63,7 @@ class BigPlanViewModel: ObservableObject {
 	  return total
    }
    
-   var weekStepsTotal1: Int {
-	  let calendar = Calendar.current
-	  let today = calendar.startOfDay(for: .now)
-	  let allEntries = entries
-	  var total = 0
-	  for offset in 0..<7 {
-		 if let date = calendar.date(byAdding: .day, value: -offset, to: today) {
-			if let entry = allEntries.first(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
-			   total += entry.steps ?? 0
-			}
-		 }
-	  }
-	  return total
-   }
-   
+
    // MARK: - Form State Properties
    var date: Date = .now
    var wakeTime: Date = .now

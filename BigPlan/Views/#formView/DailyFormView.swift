@@ -118,17 +118,18 @@ struct DailyFormView: View {
 			   .font(.system(size: 23))
 		 }
 		 .alert("Replace existing data?", isPresented: $showingSyncAlert) {
-			Button("Replace All", role: .destructive) {
-			   Task {
-				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: true)
-			   }
-			}
 			Button("Fill Empty Only") {
 			   Task {
 				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: false)
 			   }
 			}
-			Button("Cancel", role: .cancel) { }
+			Button("Replace All", role: .destructive) {
+			   Task {
+				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: true)
+			   }
+			}
+
+		 Button("Cancel", role: .cancel) { }
 		 } message: {
 			Text("Do you want to overwrite all fields with Apple Health data, or only fill empty fields?")
 		 }

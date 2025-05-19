@@ -8,13 +8,14 @@ struct DateDisplayView: View {
 	  HStack(alignment: .top, spacing: 0) {
 		 // MARK: Weekday 3 letter rotated
 		 Text(date.formatted(.dateTime.weekday(.abbreviated)).uppercased())
-			.font(.system(size: 18, weight: .medium))
-			.foregroundColor(.gpGreen.opacity(0.5))
+			.kerning(1.35)
+			.font(.system(size: 20, weight: .medium))
+			.foregroundColor(.gpLtBlue.opacity(0.65))
 			.rotationEffect(.degrees(-90))
 			.fixedSize()
 			.frame(height: 55)
 			.padding(.trailing, 3)
-			.offset(x: 8, y: 0)
+			.offset(x: 12, y: 8)
 
 		 //MARK: Month
 		 VStack(alignment: .trailing, spacing: -3) {

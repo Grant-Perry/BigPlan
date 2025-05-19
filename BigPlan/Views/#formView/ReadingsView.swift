@@ -20,7 +20,7 @@ struct ReadingsView: View {
 
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
-//		 DateHeader(bigPlanViewModel: bigPlanViewModel)
+		 //		 DateHeader(bigPlanViewModel: bigPlanViewModel)
 		 VStack(spacing: 18) {
 			HStack {
 			   Text("Glucose")
@@ -143,34 +143,6 @@ struct ReadingsView: View {
 			.onChange(of: bigPlanViewModel.bloodPressure) { oldValue, newValue in
 			   if !bigPlanViewModel.isSyncingFromHK {
 				  bigPlanViewModel.hkUpdatedBloodPressure = false
-			   }
-			}
-
-			HStack {
-			   Text("Steps")
-				  .foregroundColor(focusedField == .steps ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 19))
-			   Spacer()
-			   TextField("", value: $bigPlanViewModel.steps, format: .number)
-				  .keyboardType(.numberPad)
-				  .multilineTextAlignment(.trailing)
-				  .focused($focusedField, equals: .steps)
-				  .font(.system(size: 19))
-				  .placeholder(when: bigPlanViewModel.steps == nil) {
-					 Text("steps")
-						.foregroundColor(focusedField == .steps ? .gpGreen : .gray.opacity(0.3))
-						.font(.system(size: hintSize))
-				  }
-			   HKBadgeView(show: bigPlanViewModel.hkUpdatedSteps, hasValue: bigPlanViewModel.steps != nil)
-			}
-			.formFieldStyle(icon: "figure.walk", hasFocus: focusedField == .steps)
-			.contentShape(Rectangle())
-			.onTapGesture {
-			   focusedField = .steps
-			}
-			.onChange(of: bigPlanViewModel.steps) { oldValue, newValue in
-			   if !bigPlanViewModel.isSyncingFromHK {
-				  bigPlanViewModel.hkUpdatedSteps = false
 			   }
 			}
 
