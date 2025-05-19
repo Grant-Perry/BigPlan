@@ -9,12 +9,12 @@ struct DateDisplayView: View {
 		 // MARK: Weekday 3 letter rotated
 		 Text(date.formatted(.dateTime.weekday(.abbreviated)).uppercased())
 			.font(.system(size: 18, weight: .medium))
-			.foregroundColor(.gpGreen.opacity(0.5))
+			.foregroundColor(.gpRed.opacity(1.0))
 			.rotationEffect(.degrees(-90))
 			.fixedSize()
 			.frame(height: 55)
 			.padding(.trailing, 3)
-			.offset(x: 8, y: 0)
+			.offset(x: 10, y: 4)
 
 		 //MARK: Month
 		 VStack(alignment: .trailing, spacing: -3) {

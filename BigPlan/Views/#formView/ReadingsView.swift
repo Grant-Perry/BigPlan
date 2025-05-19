@@ -15,12 +15,12 @@ struct ReadingsView: View {
    @State private var hkUpdatedBP = false
    @State private var hkUpdatedWeight = false
    @State private var hkUpdatedHeartRate = false
-
+   
    private let hintSize: CGFloat = AppConstants.hintSize
-
+   
    var body: some View {
 	  VStack(alignment: .leading, spacing: 18) {
-//		 DateHeader(bigPlanViewModel: bigPlanViewModel)
+		 //		 DateHeader(bigPlanViewModel: bigPlanViewModel)
 		 VStack(spacing: 18) {
 			HStack {
 			   Text("Glucose")
@@ -49,7 +49,7 @@ struct ReadingsView: View {
 				  bigPlanViewModel.hkUpdatedGlucose = false
 			   }
 			}
-
+			
 			HStack {
 			   Text("Ketones")
 				  .foregroundColor(focusedField == .ketones ? .gpGreen : .gray.opacity(0.8))
@@ -77,7 +77,7 @@ struct ReadingsView: View {
 				  bigPlanViewModel.hkUpdatedKetones = false
 			   }
 			}
-
+			
 			HStack {
 			   Text("Blood Pressure")
 				  .foregroundColor((focusedField == .systolic || focusedField == .diastolic) ? .gpGreen : .gray.opacity(0.8))
@@ -99,11 +99,11 @@ struct ReadingsView: View {
 					 .frame(width: 70)
 					 .focused($focusedField, equals: .systolic)
 					 .font(.system(size: 19))
-
+				  
 				  Text("/")
 					 .foregroundColor(.gray.opacity(0.5))
 					 .font(.system(size: 19))
-
+				  
 				  TextField("", text: $diastolic)
 					 .placeholder(when: diastolic.isEmpty) {
 						Text("dia")
@@ -145,41 +145,13 @@ struct ReadingsView: View {
 				  bigPlanViewModel.hkUpdatedBloodPressure = false
 			   }
 			}
-
-			HStack {
-			   Text("Steps")
-				  .foregroundColor(focusedField == .steps ? .gpGreen : .gray.opacity(0.8))
-				  .font(.system(size: 19))
-			   Spacer()
-			   TextField("", value: $bigPlanViewModel.steps, format: .number)
-				  .keyboardType(.numberPad)
-				  .multilineTextAlignment(.trailing)
-				  .focused($focusedField, equals: .steps)
-				  .font(.system(size: 19))
-				  .placeholder(when: bigPlanViewModel.steps == nil) {
-					 Text("steps")
-						.foregroundColor(focusedField == .steps ? .gpGreen : .gray.opacity(0.3))
-						.font(.system(size: hintSize))
-				  }
-			   HKBadgeView(show: bigPlanViewModel.hkUpdatedSteps, hasValue: bigPlanViewModel.steps != nil)
-			}
-			.formFieldStyle(icon: "figure.walk", hasFocus: focusedField == .steps)
-			.contentShape(Rectangle())
-			.onTapGesture {
-			   focusedField = .steps
-			}
-			.onChange(of: bigPlanViewModel.steps) { oldValue, newValue in
-			   if !bigPlanViewModel.isSyncingFromHK {
-				  bigPlanViewModel.hkUpdatedSteps = false
-			   }
-			}
-
+			
 			HStack {
 			   Text("Heart Rate")
 				  .foregroundColor(focusedField == .heartRate ? .gpGreen : .gray.opacity(0.8))
 				  .font(.system(size: 19))
 			   Spacer()
-			   TextField("", value: $bigPlanViewModel.heartRate, format: .number)
+			   TextField("", value: $bigPlanViewModel.heartRate, format: .number.precision(.fractionLength(2)).grouping(.automatic))
 				  .keyboardType(.decimalPad)
 				  .multilineTextAlignment(.trailing)
 				  .focused($focusedField, equals: .heartRate)
@@ -201,7 +173,7 @@ struct ReadingsView: View {
 				  bigPlanViewModel.hkUpdatedHeartRate = false
 			   }
 			}
-
+			
 			WeightSection(
 			   bigPlanViewModel: bigPlanViewModel,
 			   isFocused: focusedField == .weight,
@@ -227,10 +199,10 @@ struct ReadingsView: View {
 		 loadBloodPressure()
 	  }
    }
-
+   
    private let sectionBackground = Color(UIColor.systemGray5).opacity(0.7)
    private let fieldBackground = Color.black.opacity(0.3)
-
+   
    private func loadBloodPressure() {
 	  if let bpString = bigPlanViewModel.bloodPressure, bpString != "\(systolic)/\(diastolic)" {
 		 let bpComponents = bpString.split(separator: "/")
@@ -250,15 +222,24 @@ struct ReadingsView: View {
 		 diastolic = ""
 	  }
    }
-
+   
    private func updateBloodPressure() {
 	  if !systolic.isEmpty && !diastolic.isEmpty {
 		 bigPlanViewModel.bloodPressure = "\(systolic)/\(diastolic)"
+		 if !bigPlanViewModel.isSyncingFromHK {
+			bigPlanViewModel.hkUpdatedBloodPressure = false
+		 }
 	  } else if !systolic.isEmpty && diastolic.isEmpty {
 		 bigPlanViewModel.bloodPressure = nil
+		 if !bigPlanViewModel.isSyncingFromHK {
+			bigPlanViewModel.hkUpdatedBloodPressure = false
+		 }
 	  }
 	  else {
 		 bigPlanViewModel.bloodPressure = nil
+		 if !bigPlanViewModel.isSyncingFromHK {
+			bigPlanViewModel.hkUpdatedBloodPressure = false
+		 }
 	  }
    }
 }
@@ -269,7 +250,7 @@ private struct WeightSection: View {
    let isFocused: Bool
    let onTapField: () -> Void
    let hintSize: CGFloat
-
+   
    var body: some View {
 	  VStack(alignment: .leading, spacing: 8) {
 		 // Main Weight Input
@@ -296,7 +277,7 @@ private struct WeightSection: View {
 			   bigPlanViewModel.hkUpdatedWeight = false
 			}
 		 }
-
+		 
 		 // Weight Comparisons
 		 if bigPlanViewModel.weight != nil {
 			WeightComparisons(viewModel: bigPlanViewModel)
@@ -308,7 +289,7 @@ private struct WeightSection: View {
 // MARK: - Weight Comparisons
 private struct WeightComparisons: View {
    let viewModel: BigPlanViewModel
-
+   
    var body: some View {
 	  VStack(alignment: .leading, spacing: 4) {
 		 if let (diff, isUp) = viewModel.weightDiffFromLastEntry {
@@ -324,7 +305,7 @@ private struct WeightComparisons: View {
 			}
 			.font(.system(size: 16))
 		 }
-
+		 
 		 if let (diff, isUp) = viewModel.weightDiffFromGoal {
 			HStack(spacing: 4) {
 			   Text("Remain:")

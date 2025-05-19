@@ -36,7 +36,11 @@ struct DailyListView: View {
 				  description: Text("Tap the + tab to add your first entry")
 			   )
 			} else {
-			   entryList
+			   EntryListView(
+				  selectedEntry: $selectedEntry,
+				  showDeleteConfirmation: $showDeleteConfirmation,
+				  entryToDelete: $entryToDelete
+			   )
 			}
 		 }
 		 .navigationTitle("Health History")
@@ -46,9 +50,9 @@ struct DailyListView: View {
 			   bigPlanViewModel: BigPlanViewModel(context: modelContext, existingEntry: entry)
 			)
 		 }
-                 .sheet(isPresented: $showSettings) {
-                        SettingsView(modelContext: modelContext)
-                }
+		 .sheet(isPresented: $showSettings) {
+			SettingsView(modelContext: modelContext)
+		 }
 		 .toolbar {
 			ToolbarItem(placement: .navigationBarTrailing) {
 			   Button {
@@ -81,221 +85,6 @@ struct DailyListView: View {
 		 }
 		 
 		 AppConstants.VersionFooter()
-	  }
-   }
-   
-   @ViewBuilder
-   private var entryList: some View {
-	  List {
-		 ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-			EntryRowView(entry: entry)
-			   .listRowBackground(
-				  index % 2 == 0 ?
-				  Color(.systemBackground) :
-					 Color(.secondarySystemBackground)
-			   )
-			   .contentShape(Rectangle())
-			   .onTapGesture {
-				  selectedEntry = entry
-			   }
-		 }
-		 .onDelete { indexSet in
-			if let index = indexSet.first {
-			   entryToDelete = entries[index]
-			   showDeleteConfirmation = true
-			}
-		 }
-	  }
-	  .listStyle(.plain)
-   }
-}
-
-// MARK: - Entry Row View
-private struct EntryRowView: View {
-   @Environment(\.modelContext) private var modelContext
-   let entry: DailyHealthEntry
-   
-   private let metricFontSize: CGFloat = 19
-   private let smallMetricFontSize: CGFloat = 14
-   private let metricIconSize: CGFloat = 17
-   private let dateFontSize: CGFloat = 25
-   
-   private let numberFormatter: NumberFormatter = {
-	  let formatter = NumberFormatter()
-	  formatter.numberStyle = .decimal
-	  formatter.maximumFractionDigits = 1
-	  return formatter
-   }()
-   
-   var body: some View {
-	  VStack(alignment: .leading, spacing: 8) {
-		 HStack {
-			VStack(alignment: .leading, spacing: 1) {
-			   Text(entry.date.formatted(date: .abbreviated, time: .omitted))
-				  .font(.system(size: dateFontSize))
-				  .lineLimit(1)
-				  .minimumScaleFactor(0.75)
-			   Text(entry.date.formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "en_US_POSIX"))).uppercased())
-				  .font(.system(size: 14))
-				  .foregroundColor(.gpRed)
-				  .tracking(2.5)
-			}
-			Spacer()
-			HStack(spacing: 8) {
-			   if entry.wentToGym {
-				  Image(systemName: "figure.strengthtraining.traditional")
-					 .foregroundColor(.blue)
-					 .font(.system(size: metricIconSize))
-			   }
-			   if entry.walkedAM || entry.walkedPM {
-				  Image(systemName: "figure.walk")
-					 .foregroundColor(.green)
-					 .font(.system(size: metricIconSize))
-			   }
-			}
-		 }
-		 
-		 HStack(spacing: 12) {
-			if let glucose = entry.glucose {
-			   HStack(spacing: 4) {
-				  Image(systemName: "drop.fill")
-					 .foregroundColor(.red)
-					 .font(.system(size: metricIconSize))
-				  Text("\(numberFormatter.string(from: NSNumber(value: glucose)) ?? "0") mg/dL")
-					 .font(.system(size: metricFontSize))
-					 .lineLimit(1)
-					 .minimumScaleFactor(0.5)
-					 .foregroundColor(.red)
-			   }
-			   .frame(maxWidth: .infinity)
-			}
-			
-			if let ketones = entry.ketones {
-			   HStack(spacing: 4) {
-				  Image(systemName: "flame.fill")
-					 .foregroundColor(.purple)
-					 .font(.system(size: metricIconSize))
-				  Text("\(numberFormatter.string(from: NSNumber(value: ketones)) ?? "0") mmol")
-					 .font(.system(size: metricFontSize))
-					 .lineLimit(1)
-					 .minimumScaleFactor(0.5)
-					 .foregroundColor(.purple)
-			   }
-			   .frame(maxWidth: .infinity)
-			}
-			
-			if let bp = entry.bloodPressure {
-			   HStack(spacing: 4) {
-				  Image(systemName: "heart.fill")
-					 .foregroundColor(.orange)
-					 .font(.system(size: metricIconSize))
-				  Text(bp)
-					 .font(.system(size: metricFontSize))
-					 .lineLimit(1)
-					 .minimumScaleFactor(0.5)
-					 .foregroundColor(.orange)
-			   }
-			   .frame(maxWidth: .infinity)
-			}
-		 }
-		 
-		 HStack(spacing: 12) {
-			if let steps = entry.steps {
-			   HStack(spacing: 4) {
-				  Image(systemName: "figure.walk")
-					 .foregroundColor(.green)
-					 .font(.system(size: metricIconSize))
-				  Text("\(numberFormatter.string(from: NSNumber(value: steps)) ?? "0") steps")
-					 .font(.system(size: metricFontSize))
-					 .lineLimit(1)
-					 .minimumScaleFactor(0.5)
-					 .foregroundColor(.green)
-			   }
-			   .frame(maxWidth: .infinity)
-			}
-			
-			if let weight = entry.weight {
-			   WeightMetricView(
-				  weight: weight,
-				  entry: entry,
-				  modelContext: modelContext,
-				  formatter: numberFormatter,
-				  metricFontSize: metricFontSize,
-				  smallMetricFontSize: smallMetricFontSize,
-				  metricIconSize: metricIconSize
-			   )
-			   .frame(maxWidth: .infinity)
-			}
-			
-			if let sleepTime = entry.sleepTime {
-			   HStack(spacing: 4) {
-				  Image(systemName: "moon.zzz.fill")
-					 .foregroundColor(.indigo)
-					 .font(.system(size: metricIconSize))
-				  Text(sleepTime)
-					 .font(.system(size: metricFontSize))
-					 .lineLimit(1)
-					 .minimumScaleFactor(0.5)
-					 .foregroundColor(.indigo)
-			   }
-			   .frame(maxWidth: .infinity)
-			}
-		 }
-	  }
-	  .padding(.vertical, 8)
-   }
-}
-
-// MARK: - Weight Metric View
-private struct WeightMetricView: View {
-   let weight: Double
-   let entry: DailyHealthEntry
-   let modelContext: ModelContext
-   let formatter: NumberFormatter
-   let metricFontSize: CGFloat
-   let smallMetricFontSize: CGFloat
-   let metricIconSize: CGFloat
-   
-   var lastEntry: DailyHealthEntry? {
-	  let descriptor = FetchDescriptor<DailyHealthEntry>(
-		 sortBy: [SortDescriptor(\DailyHealthEntry.date, order: .reverse)]
-	  )
-	  let entries = try? modelContext.fetch(descriptor)
-	  return entries?.first { $0.date < entry.date }
-   }
-   
-   var weightDiffFromLast: (diff: Double, isUp: Bool)? {
-	  guard let lastWeight = lastEntry?.weight else { return nil }
-	  let diff = weight - lastWeight
-	  return (abs(diff), diff > 0)
-   }
-   
-   var body: some View {
-	  VStack(alignment: .leading, spacing: 2) {
-		 HStack(spacing: 4) {
-			Image(systemName: "scalemass.fill")
-			   .foregroundColor(.blue)
-			   .font(.system(size: metricIconSize))
-			Text("\(formatter.string(from: NSNumber(value: weight)) ?? "0") lbs")
-			   .font(.system(size: metricFontSize))
-			   .lineLimit(1)
-			   .minimumScaleFactor(0.5)
-			   .foregroundColor(.blue)
-		 }
-		 
-		 if let (diff, isUp) = weightDiffFromLast {
-			HStack(spacing: 2) {
-			   Text("Last:")
-				  .foregroundStyle(.gray)
-				  .font(.system(size: smallMetricFontSize))
-			   Image(systemName: isUp ? "arrow.up" : "arrow.down")
-				  .foregroundStyle(isUp ? .green : .green)
-				  .font(.system(size: smallMetricFontSize))
-			   Text("\(formatter.string(from: NSNumber(value: diff)) ?? "0")")
-				  .foregroundStyle(isUp ? .green : .green)
-				  .font(.system(size: smallMetricFontSize))
-			}
-		 }
 	  }
    }
 }

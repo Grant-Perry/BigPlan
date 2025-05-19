@@ -102,30 +102,39 @@ struct ActivityView: View {
 			   isStepsFocused = false
 			}
 			
-			// Steps Field
+			// Steps Field - interactive entry & HKBadge
 			HStack {
 			   Text("Steps")
 				  .foregroundColor(isStepsFocused ? .gpGreen : .gray.opacity(0.8))
 				  .font(.system(size: 19))
 			   Spacer()
-			   if isFetchingSteps {
-				  ProgressView()
-					 .scaleEffect(1.2)
-			   } else {
-				  VStack(alignment: .trailing, spacing: 3) {
-					 Text("\(liveSteps.formatted(.number.grouping(.automatic))) steps")
-						.font(.system(size: 19))
-					 Text("Week Total: \(liveWeekSteps.formatted(.number.grouping(.automatic)))")
-						.font(.system(size: 16))
-						.foregroundColor(.secondary)
-				  }
+			   VStack(alignment: .trailing, spacing: 2) {
+				  TextField("", value: $bigPlanViewModel.steps, format: .number)
+					 .keyboardType(.numberPad)
+					 .multilineTextAlignment(.trailing)
+					 .focused($isStepsFocused)
+					 .font(.system(size: 19))
+					 .placeholder(when: bigPlanViewModel.steps == nil) {
+						Text("steps")
+						   .foregroundColor(isStepsFocused ? .gpGreen : .gray.opacity(0.3))
+						   .font(.system(size: 16))
+					 }
+				  Text("Week Total: \(liveWeekSteps.formatted(.number.grouping(.automatic)))")
+					 .font(.system(size: 15))
+					 .foregroundColor(.secondary)
 			   }
+			   HKBadgeView(show: bigPlanViewModel.hkUpdatedSteps, hasValue: bigPlanViewModel.steps != nil)
 			}
-			.contentShape(Rectangle())
 			.formFieldStyle(icon: "figure.walk", hasFocus: isStepsFocused)
+			.contentShape(Rectangle())
 			.onTapGesture {
 			   isStepsFocused = true
 			   focusedToggle = nil
+			}
+			.onChange(of: bigPlanViewModel.steps) { oldValue, newValue in
+			   if !bigPlanViewModel.isSyncingFromHK {
+				  bigPlanViewModel.hkUpdatedSteps = false
+			   }
 			}
 			.onChange(of: bigPlanViewModel.date) { _, newDate in
 			   triggerStepDebouncedFetch(for: newDate)

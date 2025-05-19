@@ -118,14 +118,14 @@ struct DailyFormView: View {
 			   .font(.system(size: 23))
 		 }
 		 .alert("Replace existing data?", isPresented: $showingSyncAlert) {
-			Button("Replace All", role: .destructive) {
-			   Task {
-				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: true)
-			   }
-			}
 			Button("Fill Empty Only") {
 			   Task {
 				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: false)
+			   }
+			}
+			Button("Replace All", role: .destructive) {
+			   Task {
+				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: true)
 			   }
 			}
 			Button("Cancel", role: .cancel) { }

@@ -1,17 +1,14 @@
 import SwiftUI
 
 struct HKBadgeView: View {
-   var show: Bool
-   var hasValue: Bool
-
+   let show: Bool
+   let hasValue: Bool
+   
    var body: some View {
-	  if show && hasValue {
-		 Image(systemName: "applelogo")
-			.resizable()
-			.frame(width: 10, height: 10)
-			.foregroundColor(.gpGreen)
-			.offset(x: -3, y: -5)
-			.padding(.leading, 2)
+	  if show {
+		 Image(systemName: "heart.fill")
+			.foregroundStyle(hasValue ? .green : .gray.opacity(0.3))
+			.font(.system(size: 15))
 	  }
    }
 }

@@ -392,35 +392,53 @@ class BigPlanViewModel: ObservableObject {
 	  await HealthKitManager.shared.steps(for: date)
    }
    
+   private func createEntryWithHealthKitData(for date: Date, steps: Int) async -> DailyHealthEntry {
+	  async let hkGlucose = HealthKitManager.shared.bloodGlucose(for: date)
+	  async let hkSleep = HealthKitManager.shared.fetchSleepAnalysis(for: date)
+	  async let hkHeartRate = HealthKitManager.shared.fetchHeartRate(for: date)
+	  
+	  let glucose = await hkGlucose
+	  let sleep = await hkSleep
+	  let heartRate = await hkHeartRate
+	  
+	  let entry = DailyHealthEntry(
+		 date: date,
+		 wakeTime: date,
+		 glucose: glucose,
+		 ketones: nil,
+		 bloodPressure: nil,
+		 weight: nil,
+		 sleepTime: sleep,
+		 stressLevel: nil,
+		 walkedAM: false,
+		 walkedPM: false,
+		 firstMealTime: nil,
+		 lastMealTime: nil,
+		 steps: steps,
+		 wentToGym: false,
+		 rlt: nil,
+		 weatherData: nil,
+		 notes: nil,
+		 weekTotalSteps: calculateWeekSteps(for: date),
+		 heartRate: heartRate
+	  )
+	  
+	  entry.hkUpdatedGlucose = (glucose != nil)
+	  entry.hkUpdatedSleepTime = (sleep != nil)
+	  entry.hkUpdatedHeartRate = (heartRate != nil)
+	  entry.hkUpdatedSteps = (steps > 0)
+	  
+	  return entry
+   }
+   
    /// Auto-create DailyHealthEntry objects for missing days (including today), filling step count from HealthKit.
    func backfillMissingEntries() async {
-	  // Get all entry dates (at midnight)
 	  let allDates = entries.map { Calendar.current.startOfDay(for: $0.date) }
 	  let today = Calendar.current.startOfDay(for: .now)
 	  
-	  // If there are no records at all, just create for today (and bail)
 	  if allDates.isEmpty {
 		 let steps = await fetchSteps(for: today)
-		 let entry = DailyHealthEntry(
-			date: today,
-			wakeTime: today,
-			glucose: nil,
-			ketones: nil,
-			bloodPressure: nil,
-			weight: nil,
-			sleepTime: nil,
-			stressLevel: nil,
-			walkedAM: false,
-			walkedPM: false,
-			firstMealTime: nil,
-			lastMealTime: nil,
-			steps: steps,
-			wentToGym: false,
-			rlt: nil,
-			weatherData: nil,
-			notes: nil,
-			weekTotalSteps: calculateWeekSteps(for: today)
-		 )
+		 let entry = await createEntryWithHealthKitData(for: today, steps: steps)
 		 context.insert(entry)
 		 do {
 			try context.save()
@@ -436,7 +454,6 @@ class BigPlanViewModel: ObservableObject {
 	  var date = earliest
 	  var missingDates: [Date] = []
 	  
-	  // Go up to & including today
 	  while date <= today {
 		 if !allDates.contains(date) {
 			missingDates.append(date)
@@ -445,33 +462,14 @@ class BigPlanViewModel: ObservableObject {
 		 date = next
 	  }
 	  
-	  // Don't do anything if there are no gaps
 	  guard !missingDates.isEmpty else { return }
 	  
 	  for missingDate in missingDates {
 		 let steps = await fetchSteps(for: missingDate)
-		 let entry = DailyHealthEntry(
-			date: missingDate,
-			wakeTime: missingDate,
-			glucose: nil,
-			ketones: nil,
-			bloodPressure: nil,
-			weight: nil,
-			sleepTime: nil,
-			stressLevel: nil,
-			walkedAM: false,
-			walkedPM: false,
-			firstMealTime: nil,
-			lastMealTime: nil,
-			steps: steps,
-			wentToGym: false,
-			rlt: nil,
-			weatherData: nil,
-			notes: nil,
-			weekTotalSteps: calculateWeekSteps(for: missingDate)
-		 )
+		 let entry = await createEntryWithHealthKitData(for: missingDate, steps: steps)
 		 context.insert(entry)
 	  }
+	  
 	  do {
 		 try context.save()
 		 logger.info("Backfilled \(missingDates.count) missing DailyHealthEntry record(s) (including today if needed).")
@@ -540,47 +538,36 @@ class BigPlanViewModel: ObservableObject {
 	  let date = self.date
 	  isSyncingFromHK = true
 	  
-	  async let hkGlucose = HealthKitManager.shared.bloodGlucose(for: date)
-	  async let hkSleep = HealthKitManager.shared.fetchSleepAnalysis(for: date)
-	  async let hkHeartRate = HealthKitManager.shared.fetchHeartRate(for: date)
-	  async let hkSteps = HealthKitManager.shared.steps(for: date)
+	  let steps = await fetchSteps(for: date)
+	  let entry = await createEntryWithHealthKitData(for: date, steps: steps)
 	  
-	  let glucose = await hkGlucose
-	  let sleep = await hkSleep
-	  let heartRate = await hkHeartRate
-	  let steps = await hkSteps
-	  
-	  print("DP: HealthKit [date=\(date)] glucose: \(String(describing: glucose))")
-	  print("DP: HealthKit [date=\(date)] sleep: \(String(describing: sleep))")
-	  print("DP: HealthKit [date=\(date)] heartRate: \(String(describing: heartRate))")
-	  print("DP: HealthKit [date=\(date)] steps: \(String(describing: steps))")
-	  
-	  if let entry = existingEntry {
-		 if overwrite || entry.glucose == nil {
-			entry.glucose = glucose
-			entry.hkUpdatedGlucose = (glucose != nil)
-			self.glucose = glucose
-			self.hkUpdatedGlucose = (glucose != nil)
+	  // Update existing entry or view model with new values
+	  if let existingEntry = self.existingEntry {
+		 if overwrite || existingEntry.glucose == nil {
+			existingEntry.glucose = entry.glucose
+			existingEntry.hkUpdatedGlucose = entry.hkUpdatedGlucose
+			self.glucose = entry.glucose
+			self.hkUpdatedGlucose = entry.hkUpdatedGlucose
 		 }
-		 if overwrite || entry.sleepTime == nil || entry.sleepTime?.isEmpty == true {
-			entry.sleepTime = sleep
-			entry.hkUpdatedSleepTime = (sleep != nil)
-			self.sleepTime = sleep
-			self.hkUpdatedSleepTime = (sleep != nil)
+		 if overwrite || existingEntry.sleepTime == nil || existingEntry.sleepTime?.isEmpty == true {
+			existingEntry.sleepTime = entry.sleepTime
+			existingEntry.hkUpdatedSleepTime = entry.hkUpdatedSleepTime
+			self.sleepTime = entry.sleepTime
+			self.hkUpdatedSleepTime = entry.hkUpdatedSleepTime
 		 }
-		 if overwrite || entry.heartRate == nil {
-			entry.heartRate = heartRate
-			entry.hkUpdatedHeartRate = (heartRate != nil)
-			self.heartRate = heartRate
-			self.hkUpdatedHeartRate = (heartRate != nil)
+		 if overwrite || existingEntry.heartRate == nil {
+			existingEntry.heartRate = entry.heartRate
+			existingEntry.hkUpdatedHeartRate = entry.hkUpdatedHeartRate
+			self.heartRate = entry.heartRate
+			self.hkUpdatedHeartRate = entry.hkUpdatedHeartRate
 		 }
-		 if overwrite || entry.steps == nil {
-			entry.steps = steps
-			entry.hkUpdatedSteps = (steps > 0)
-			self.steps = steps
-			self.hkUpdatedSteps = (steps > 0)
+		 if overwrite || existingEntry.steps == nil {
+			existingEntry.steps = entry.steps
+			existingEntry.hkUpdatedSteps = entry.hkUpdatedSteps
+			self.steps = entry.steps
+			self.hkUpdatedSteps = entry.hkUpdatedSteps
 		 }
-		 // ...repeat for other metrics/flags if needed...
+		 
 		 do {
 			try context.save()
 		 } catch {
