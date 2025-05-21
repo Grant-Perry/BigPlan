@@ -12,11 +12,10 @@ struct BigPlanTabView: View {
    @StateObject private var tabViewModel: BigPlanTabViewModel
    
    init(modelContext: ModelContext) {
+	  logger.debug("BigPlanTabView.init() called")
 	  self.modelContext = modelContext
 	  _tabViewModel = StateObject(wrappedValue: BigPlanTabViewModel(context: modelContext))
    }
-   
-   @Query private var allEntries: [DailyHealthEntry]
    
    var body: some View {
 	  TabView(selection: $tabViewModel.selectedTab) {
@@ -28,52 +27,23 @@ struct BigPlanTabView: View {
 		 }
 		 .tag(0)
 		 
-		 Group {
-			if let currentViewModel = tabViewModel.formViewModel {
-			   NavigationStack {
-				  DailyFormView(
-					 selectedTab: $tabViewModel.selectedTab,
-					 bigPlanViewModel: currentViewModel
-				  )
-				  .id(tabViewModel.dailyFormViewId)
-			   }
-			} else {
-			   ProgressView().onAppear {
-				  logger.error("DailyFormView attempted to render with a nil viewModel for tab 1.")
-				  if tabViewModel.selectedTab == 1 {
-					 tabViewModel.initializeViewModelForTab1()
-				  }
-			   }
-			}
+		 NavigationStack {
+			ImportView(selectedTab: $tabViewModel.selectedTab)
 		 }
 		 .tabItem {
-			if tabViewModel.todayEntryExists {
-			   Label("Edit Today", systemImage: "pencil.circle")
-			} else {
-			   Label("New Entry", systemImage: "plus.circle")
-			}
+			Label("Import", systemImage: "square.and.arrow.down")
 		 }
 		 .tag(1)
 	  }
 	  .onAppear {
+		 logger.debug("TabView appeared, checking for today's entry")
 		 tabViewModel.checkForTodaysEntry()
-		 if tabViewModel.selectedTab == 1 && tabViewModel.formViewModel == nil {
-			tabViewModel.initializeViewModelForTab1()
-		 }
 	  }
-	  .onChange(of: tabViewModel.selectedTab) { oldValue, newValue in
-		 if newValue == 1 {
-			logger.debug("Switched to Tab 1 (New/Edit).")
-			tabViewModel.initializeViewModelForTab1()
-		 } else if newValue == 0 {
+	  .onChange(of: tabViewModel.selectedTab) { _, newValue in
+		 if newValue == 0 {
 			logger.debug("Switched to Tab 0 (History).")
 			tabViewModel.checkForTodaysEntry()
 		 }
 	  }
-	  .onChange(of: allEntries.count) { _, _ in
-		 logger.debug("Entries count changed. Re-checking for today's entry.")
-		 tabViewModel.checkForTodaysEntry()
-	  }
    }
-   
 }

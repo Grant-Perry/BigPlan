@@ -1,4 +1,3 @@
-
 import SwiftUI
 import SwiftData
 import OSLog
@@ -8,18 +7,17 @@ private let logger = Logger(subsystem: "BigPlan", category: "App")
 
 @main
 struct BigPlanApp: App {
-   @StateObject private var persistenceController = PersistenceController()
    @State private var showSplash = true
-   @StateObject private var launchBackfillViewModel = BigPlanViewModel(
-	  context: PersistenceController().container.mainContext
-   )
-
+   
    var body: some Scene {
 	  WindowGroup {
 		 ZStack {
-			BigPlanTabView(modelContext: persistenceController.container.mainContext)
-			   .environment(\.modelContext, persistenceController.container.mainContext)
-
+			BigPlanTabView(modelContext: PersistenceController.shared.container.mainContext)
+			   .environment(\.modelContext, PersistenceController.shared.container.mainContext)
+			   .onAppear {
+				  logger.debug("BigPlanTabView appeared")
+			   }
+			
 			if showSplash {
 			   MainSplashView()
 				  .transition(.opacity)
@@ -34,17 +32,19 @@ struct BigPlanApp: App {
 						}
 				  )
 				  .onAppear {
-					 // Auto-dismiss after 2 seconds
-					 // Launch-time silent backfill, includes today.
+					 logger.debug("MainSplashView appeared")
 					 Task {
 						let authorized = await HealthKitManager.shared.requestAuthorization()
+						logger.debug("HealthKit authorization: \(authorized)")
 						if authorized {
-						   await launchBackfillViewModel.backfillMissingEntries()
+						   let backfillViewModel = BigPlanViewModel(context: PersistenceController.shared.container.mainContext)
+						   await backfillViewModel.backfillMissingEntries()
 						}
 					 }
 					 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
 						withAnimation {
 						   showSplash = false
+						   logger.debug("Splash screen dismissed")
 						}
 					 }
 				  }
@@ -56,40 +56,44 @@ struct BigPlanApp: App {
 
 // MARK: - Persistence Controller
 @MainActor
-class PersistenceController: ObservableObject {
+final class PersistenceController {
+   static let shared = PersistenceController()
+   
    let container: ModelContainer
    private let cloudKitContainer: CKContainer
    private var lastLoggedCount: Int = 0
-
-   init() {
+   
+   private init() {
+	  logger.debug("PersistenceController.init() started")
+	  
 	  do {
 		 let schema = Schema([
 			DailyHealthEntry.self,
 			Settings.self
 		 ])
-
+		 
 		 let storeURL = URL.documentsDirectory.appendingPathComponent("BigPlan.store")
 		 logger.info(" Store URL: \(storeURL.path())")
-
+		 
 		 cloudKitContainer = CKContainer(identifier: "iCloud.com.GrantPerry.BigPlan")
-
+		 
 		 let config = ModelConfiguration(
 			schema: schema,
 			url: storeURL,
 			allowsSave: true,
 			cloudKitDatabase: .private("iCloud.com.GrantPerry.BigPlan")
 		 )
-
+		 
 		 container = try ModelContainer(for: schema, configurations: [config])
-
+		 
 		 setupCloudKitMonitoring()
 		 setupChangeMonitoring()
 		 setupSyncMonitoring()
-
+		 
 		 Task { @MainActor in
 			let context = container.mainContext
 			let descriptor = FetchDescriptor<DailyHealthEntry>()
-
+			
 			if let entries = try? context.fetch(descriptor) {
 			   logger.info(" Found \(entries.count) entries in store at launch")
 			   entries.forEach { entry in
@@ -98,15 +102,16 @@ class PersistenceController: ObservableObject {
 			   self.lastLoggedCount = entries.count
 			}
 		 }
-
+		 
 		 logger.info(" ModelContainer initialized successfully with CloudKit at \(storeURL.path())")
-
+		 logger.debug("PersistenceController.init() completed")
+		 
 	  } catch {
 		 logger.error(" Fatal error setting up persistence: \(error.localizedDescription)")
-		 fatalError("Fatal error setting up persistence")
+		 fatalError("Fatal error setting up persistence: \(error.localizedDescription)")
 	  }
    }
-
+   
    private func setupCloudKitMonitoring() {
 	  Task { @MainActor in
 		 do {
@@ -114,17 +119,17 @@ class PersistenceController: ObservableObject {
 			switch status {
 			   case .available:
 				  logger.info(" CloudKit account is available")
-
+				  
 				  let database = cloudKitContainer.privateCloudDatabase
 				  let subscription = CKDatabaseSubscription(subscriptionID: "all-changes")
-
+				  
 				  let notificationInfo = CKSubscription.NotificationInfo()
 				  notificationInfo.shouldSendContentAvailable = true
 				  subscription.notificationInfo = notificationInfo
-
+				  
 				  try await database.save(subscription)
 				  logger.info(" CloudKit subscription saved")
-
+				  
 			   case .noAccount:
 				  logger.error(" No iCloud account found")
 			   case .restricted:
@@ -141,7 +146,7 @@ class PersistenceController: ObservableObject {
 		 }
 	  }
    }
-
+   
    private func setupSyncMonitoring() {
 	  NotificationCenter.default.addObserver(
 		 self,
@@ -150,7 +155,7 @@ class PersistenceController: ObservableObject {
 		 object: nil
 	  )
    }
-
+   
    @objc private func handleRemoteChange(_ notification: Notification) {
 	  Task { [weak self] in
 		 guard let self = self else { return }
@@ -163,18 +168,18 @@ class PersistenceController: ObservableObject {
 		 }
 	  }
    }
-
+   
    private func setupChangeMonitoring() {
 	  let context = container.mainContext
 	  context.autosaveEnabled = true
-
+	  
 	  NotificationCenter.default.addObserver(
 		 self,
 		 selector: #selector(contextWillSave),
 		 name: Notification.Name("NSManagedObjectContextWillSaveNotification"),
 		 object: context
 	  )
-
+	  
 	  NotificationCenter.default.addObserver(
 		 self,
 		 selector: #selector(contextDidSave),
@@ -182,11 +187,11 @@ class PersistenceController: ObservableObject {
 		 object: context
 	  )
    }
-
+   
    @objc private func contextWillSave(_ notification: Notification) {
 	  logger.info(" Context will save...")
    }
-
+   
    @objc private func contextDidSave(_ notification: Notification) {
 	  Task { [weak self] in
 		 guard let self = self else { return }

@@ -32,7 +32,7 @@ struct ReadingsView: View {
 				  .foregroundColor(focusedField == .glucose ? .gpGreen : .gray.opacity(0.8))
 				  .font(.system(size: 19))
 			   Spacer()
-			   TextField("", value: $bigPlanViewModel.glucose, format: .number.rounded())
+			   TextField("", value: $bigPlanViewModel.glucose, format: .number.precision(.fractionLength(1)))
 				  .keyboardType(.decimalPad)
 				  .multilineTextAlignment(.trailing)
 				  .focused($focusedField, equals: .glucose)
