@@ -4,21 +4,21 @@ import SwiftData
 struct EntryRowView: View {
    @Environment(\.modelContext) private var modelContext
    let entry: DailyHealthEntry
-
+   
    private let metricFontSize: CGFloat = 19
    private let smallMetricFontSize: CGFloat = 14
    private let headerIconSize: CGFloat = 14
    private let metricIconSize: CGFloat = 17
    private let daySize: CGFloat = 17
    private let dateFontSize: CGFloat = 23
-
+   
    private let numberFormatter: NumberFormatter = {
 	  let formatter = NumberFormatter()
 	  formatter.numberStyle = .decimal
 	  formatter.maximumFractionDigits = 1
 	  return formatter
    }()
-
+   
    var body: some View {
 	  VStack(alignment: .leading, spacing: 8) {
 		 HStack {
@@ -72,7 +72,7 @@ struct EntryRowView: View {
 					 .font(.system(size: headerIconSize))
 					 .animation(.easeInOut, value: entry.hkUpdatedWeight)
 			   }
-			   if entry.heartRate != nil {
+			   if entry.minHeartRate != nil || entry.maxHeartRate != nil || entry.avgHeartRate != nil {
 				  Image(systemName: "heart.circle.fill")
 					 .foregroundColor(entry.hkUpdatedHeartRate ? .pink : .pink.opacity(0.6))
 					 .font(.system(size: headerIconSize))
@@ -85,7 +85,7 @@ struct EntryRowView: View {
 			.cornerRadius(12)
 			.padding(.trailing, 2)
 		 }
-
+		 
 		 HStack(spacing: 12) {
 			if let glucose = entry.glucose {
 			   HStack(spacing: 4) {
@@ -100,7 +100,7 @@ struct EntryRowView: View {
 			   }
 			   .frame(maxWidth: .infinity)
 			}
-
+			
 			if let ketones = entry.ketones {
 			   HStack(spacing: 4) {
 				  Image(systemName: "flame.fill")
@@ -114,7 +114,7 @@ struct EntryRowView: View {
 			   }
 			   .frame(maxWidth: .infinity)
 			}
-
+			
 			if let bp = entry.bloodPressure {
 			   HStack(spacing: 4) {
 				  Image(systemName: "heart.fill")
@@ -129,7 +129,7 @@ struct EntryRowView: View {
 			   .frame(maxWidth: .infinity)
 			}
 		 }
-
+		 
 		 HStack(spacing: 12) {
 			if let steps = entry.steps {
 			   HStack(spacing: 4) {
@@ -144,7 +144,7 @@ struct EntryRowView: View {
 			   }
 			   .frame(maxWidth: .infinity)
 			}
-
+			
 			if let weight = entry.weight {
 			   WeightMetricView(
 				  weight: weight,
@@ -157,7 +157,7 @@ struct EntryRowView: View {
 			   )
 			   .frame(maxWidth: .infinity)
 			}
-
+			
 			if let sleepTime = entry.sleepTime {
 			   HStack(spacing: 4) {
 				  Image(systemName: "moon.zzz.fill")
@@ -168,6 +168,21 @@ struct EntryRowView: View {
 					 .lineLimit(1)
 					 .minimumScaleFactor(0.5)
 					 .foregroundColor(.indigo)
+			   }
+			   .frame(maxWidth: .infinity)
+			}
+		 }
+		 if entry.minHeartRate != nil || entry.maxHeartRate != nil {
+			HStack(spacing: 12) {
+			   HStack(spacing: 4) {
+				  Image(systemName: "heart.circle.fill")
+					 .foregroundColor(.pink)
+					 .font(.system(size: metricIconSize))
+				  Text("\(Int(entry.minHeartRate ?? 0))-\(Int(entry.maxHeartRate ?? 0)) bpm")
+					 .font(.system(size: metricFontSize))
+					 .lineLimit(1)
+					 .minimumScaleFactor(0.5)
+					 .foregroundColor(.pink)
 			   }
 			   .frame(maxWidth: .infinity)
 			}

@@ -16,7 +16,7 @@ struct MainSplashView: View {
 		 ZStack {
 			// Background gradient
 			LinearGradient(
-			   gradient: Gradient(colors: [.gpGold, .gpDeltaPurple, .gpPink]),
+			   gradient: Gradient(colors: [.gpLtBlue, .gpBlue, .gpMinty]),
 			   startPoint: .topLeading,
 			   endPoint: .bottomTrailing
 			)

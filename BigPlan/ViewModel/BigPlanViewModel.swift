@@ -78,6 +78,10 @@ class BigPlanViewModel: ObservableObject {
 	  return total
    }
    
+   var minHeartRate: Double?
+   var maxHeartRate: Double?
+   var avgHeartRate: Double?
+   
    // MARK: - Form State Properties
    var date: Date = .now
    var wakeTime: Date = .now
@@ -96,7 +100,6 @@ class BigPlanViewModel: ObservableObject {
    var rlt: String? = nil
    var weatherData: String? = nil
    var notes: String? = nil
-   var heartRate: Double? = nil
    
    var formValues: [String: Any] {
 	  [
@@ -208,7 +211,9 @@ class BigPlanViewModel: ObservableObject {
 			self.rlt = entry.rlt
 			self.weatherData = entry.weatherData
 			self.notes = entry.notes
-			self.heartRate = entry.heartRate // CRITICAL FOR FORM PREFILL
+			self.minHeartRate = entry.minHeartRate
+			self.maxHeartRate = entry.maxHeartRate
+			self.avgHeartRate = entry.avgHeartRate
 			logger.debug("Populating VM from existingEntry ID: \(entry.id.uuidString, privacy: .public)")
 			if entry.weekTotalSteps == nil {
 			   entry.weekTotalSteps = calculateWeekSteps(for: entry.date)
@@ -269,8 +274,10 @@ class BigPlanViewModel: ObservableObject {
 			   // If weatherData is nil-ed out on form load and re-fetched, this is fine.
 			   entryToSave.weatherData = weatherData
 			   entryToSave.notes = notes
+			   entryToSave.minHeartRate = minHeartRate
+			   entryToSave.maxHeartRate = maxHeartRate
+			   entryToSave.avgHeartRate = avgHeartRate
 			   entryToSave.weekTotalSteps = calculateWeekSteps(for: date)
-			   entryToSave.heartRate = heartRate
 			} else {
 			   // Full model for NEW entry
 			   entryToSave = DailyHealthEntry(
@@ -292,7 +299,9 @@ class BigPlanViewModel: ObservableObject {
 				  weatherData: weatherData,
 				  notes: notes,
 				  weekTotalSteps: calculateWeekSteps(for: date),
-				  heartRate: heartRate
+				  minHeartRate: minHeartRate,
+				  maxHeartRate: maxHeartRate,
+				  avgHeartRate: avgHeartRate
 			   )
 			   context.insert(entryToSave)
 			   self.existingEntry = entryToSave
@@ -395,19 +404,23 @@ class BigPlanViewModel: ObservableObject {
    private func createEntryWithHealthKitData(for date: Date, steps: Int) async -> DailyHealthEntry {
 	  async let hkGlucose = HealthKitManager.shared.bloodGlucose(for: date)
 	  async let hkSleep = HealthKitManager.shared.fetchSleepAnalysis(for: date)
-	  async let hkHeartRate = HealthKitManager.shared.fetchHeartRate(for: date)
+	  async let hkHeartRateStats = HealthKitManager.shared.fetchHeartRateStats(for: date)
+	  async let hkWeight = HealthKitManager.shared.fetchWeight(for: date)
 	  
 	  let glucose = await hkGlucose
 	  let sleep = await hkSleep
-	  let heartRate = await hkHeartRate
+	  let (min, max, avg) = await hkHeartRateStats
+	  let weight = await hkWeight
+	  
+	  logger.debug("Sleep data fetched for \(date): \(String(describing: sleep))")
 	  
 	  let entry = DailyHealthEntry(
 		 date: date,
-		 wakeTime: date,
+		 wakeTime: Calendar.current.date(byAdding: .hour, value: 8, to: Calendar.current.startOfDay(for: date)) ?? date,
 		 glucose: glucose,
 		 ketones: nil,
 		 bloodPressure: nil,
-		 weight: nil,
+		 weight: weight,
 		 sleepTime: sleep,
 		 stressLevel: nil,
 		 walkedAM: false,
@@ -420,13 +433,16 @@ class BigPlanViewModel: ObservableObject {
 		 weatherData: nil,
 		 notes: nil,
 		 weekTotalSteps: calculateWeekSteps(for: date),
-		 heartRate: heartRate
+		 minHeartRate: min,
+		 maxHeartRate: max,
+		 avgHeartRate: avg
 	  )
 	  
 	  entry.hkUpdatedGlucose = (glucose != nil)
 	  entry.hkUpdatedSleepTime = (sleep != nil)
-	  entry.hkUpdatedHeartRate = (heartRate != nil)
+	  entry.hkUpdatedHeartRate = (min != nil || max != nil || avg != nil)
 	  entry.hkUpdatedSteps = (steps > 0)
+	  entry.hkUpdatedWeight = (weight != nil)
 	  
 	  return entry
    }
@@ -555,10 +571,14 @@ class BigPlanViewModel: ObservableObject {
 			self.sleepTime = entry.sleepTime
 			self.hkUpdatedSleepTime = entry.hkUpdatedSleepTime
 		 }
-		 if overwrite || existingEntry.heartRate == nil {
-			existingEntry.heartRate = entry.heartRate
+		 if overwrite || existingEntry.minHeartRate == nil || existingEntry.maxHeartRate == nil || existingEntry.avgHeartRate == nil {
+			existingEntry.minHeartRate = entry.minHeartRate
+			existingEntry.maxHeartRate = entry.maxHeartRate
+			existingEntry.avgHeartRate = entry.avgHeartRate
 			existingEntry.hkUpdatedHeartRate = entry.hkUpdatedHeartRate
-			self.heartRate = entry.heartRate
+			self.minHeartRate = entry.minHeartRate
+			self.maxHeartRate = entry.maxHeartRate
+			self.avgHeartRate = entry.avgHeartRate
 			self.hkUpdatedHeartRate = entry.hkUpdatedHeartRate
 		 }
 		 if overwrite || existingEntry.steps == nil {
@@ -566,6 +586,12 @@ class BigPlanViewModel: ObservableObject {
 			existingEntry.hkUpdatedSteps = entry.hkUpdatedSteps
 			self.steps = entry.steps
 			self.hkUpdatedSteps = entry.hkUpdatedSteps
+		 }
+		 if overwrite || existingEntry.weight == nil {
+			existingEntry.weight = entry.weight
+			existingEntry.hkUpdatedWeight = entry.hkUpdatedWeight
+			self.weight = entry.weight
+			self.hkUpdatedWeight = entry.hkUpdatedWeight
 		 }
 		 
 		 do {

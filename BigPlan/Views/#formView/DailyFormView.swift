@@ -14,12 +14,12 @@ struct DailyFormView: View {
    @State private var isLoading = true
    @State private var liveSteps: Int = 0
    @State private var showingSyncAlert = false
-
+   
    private func completeAction() {
 	  dismiss()
 	  selectedTab = 0
    }
-
+   
    private func handleDismiss() {
 	  if bigPlanViewModel.hasUnsavedChanges {
 		 showingDismissAlert = true
@@ -27,111 +27,110 @@ struct DailyFormView: View {
 		 completeAction()
 	  }
    }
-
+   
    var body: some View {
-	  NavigationStack {
-		 ZStack {
-			if isLoading {
-			   LoadingView()
-			} else {
-			   //  MARK: menu bar  at bottom of screen
-			   ScrollView {
-				  VStack(alignment: .leading, spacing: 4) {
-					 // Header with just the date
-					 HStack(alignment: .top) {
-						Spacer()
-						DateDisplayView(date: bigPlanViewModel.date, selectedDate: $bigPlanViewModel.date)
-					 }
+	  ZStack {
+		 if isLoading {
+			LoadingView()
+		 } else {
+			ScrollView {
+			   VStack(alignment: .leading, spacing: 4) {
+				  // Header with just the date
+				  HStack(alignment: .top) {
+					 Spacer()
+					 DateDisplayView(date: bigPlanViewModel.date, selectedDate: $bigPlanViewModel.date)
+				  }
+				  .padding(.horizontal)
+				  
+				  // MARK: All of the individual views
+				  FormContentView(bigPlanViewModel: bigPlanViewModel, selectedTab: $selectedTab, liveSteps: $liveSteps)
 					 .padding(.horizontal)
-
-					 // Form Content
-					 FormContentView(bigPlanViewModel: bigPlanViewModel, selectedTab: $selectedTab, liveSteps: $liveSteps)
-						.padding(.horizontal)
-						.offset(y: -25)
-				  }
+					 .offset(y: -25)
 			   }
+			}
+			.disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
+			.opacity(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving ? 0.6 : 1.0)
+		 }
+		 
+		 // Loading Overlay
+		 if bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving {
+			LoadingView()
+		 }
+	  }
+	  .navigationBarTitleDisplayMode(.inline)
+	  .navigationBarBackButtonHidden(true)
+	  .toolbarRole(.editor)
+	  .toolbar(.visible, for: .navigationBar)
+	  .toolbar {
+		 ToolbarItem(placement: .navigationBarLeading) {
+			Button {
+			   handleDismiss()
+			} label: {
+			   HStack(spacing: 5) {
+				  Image(systemName: "chevron.left")
+				  Text("Health History")
+			   }
+			   .font(.system(size: 23))
+			}
+			.disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
+		 }
+		 ToolbarItem(placement: .navigationBarTrailing) {
+			HStack(spacing: 18) {
+			   Button("Done") {
+				  bigPlanViewModel.steps = liveSteps // SYNC actual steps
+				  bigPlanViewModel.saveEntry()
+				  completeAction()
+			   }
+			   .font(.system(size: 23))
 			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
-			   .opacity(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving ? 0.6 : 1.0)
-			}
-
-			// Loading Overlay
-			if bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving {
-			   LoadingView()
-			}
-		 }
-		 .onChange(of: bigPlanViewModel.formValuesString) { _, _ in
-			bigPlanViewModel.hasUnsavedChanges = true
-		 }
-		 .onAppear {
-			bigPlanViewModel.hasUnsavedChanges = false
-		 }
-		 .scrollDismissesKeyboard(.immediately)
-		 .navigationBarTitleDisplayMode(.inline)
-		 .navigationBarBackButtonHidden(true)
-		 .toolbar {
-			ToolbarItem(placement: .navigationBarLeading) {
+			   
 			   Button {
-				  handleDismiss()
+				  showingSyncAlert = true
 			   } label: {
-				  HStack(spacing: 5) {
-					 Image(systemName: "chevron.left")
-					 Text("Health History")
-				  }
-				  .font(.system(size: 23))
-			   }
-			   .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
-			}
-			ToolbarItem(placement: .navigationBarTrailing) {
-			   HStack(spacing: 18) {
-				  Button("Done") {
-					 bigPlanViewModel.steps = liveSteps // SYNC actual steps
-					 bigPlanViewModel.saveEntry()
-					 completeAction()
-				  }
-				  .font(.system(size: 23))
-				  .disabled(bigPlanViewModel.isInitializing || bigPlanViewModel.isSaving)
-
-				  Button {
-					 showingSyncAlert = true
-				  } label: {
-					 Image(systemName: "arrow.clockwise.circle")
-				  }
+				  Image(systemName: "arrow.clockwise.circle")
 			   }
 			}
 		 }
-		 .alert("Save Changes?", isPresented: $showingDismissAlert) {
-			Button("Don't Save", role: .destructive) {
-			   completeAction()
-			}
+	  }
+	  .scrollDismissesKeyboard(.immediately)
+	  .onChange(of: bigPlanViewModel.formValuesString) { _, _ in
+		 bigPlanViewModel.hasUnsavedChanges = true
+	  }
+	  .onAppear {
+		 bigPlanViewModel.hasUnsavedChanges = false
+	  }
+	  .alert("Save Changes?", isPresented: $showingDismissAlert) {
+		 Button("Don't Save", role: .destructive) {
+			completeAction()
+		 }
+		 .font(.system(size: 23))
+		 
+		 Button("Save") {
+			bigPlanViewModel.saveEntry()
+			completeAction()
+		 }
+		 .font(.system(size: 23))
+		 
+		 Button("Cancel", role: .cancel) { }
 			.font(.system(size: 23))
-
-			Button("Save") {
-			   bigPlanViewModel.saveEntry()
-			   completeAction()
-			}
+	  } message: {
+		 Text("Would you like to save your changes before exiting?")
 			.font(.system(size: 23))
-
-			Button("Cancel", role: .cancel) { }
-			   .font(.system(size: 23))
-		 } message: {
-			Text("Would you like to save your changes before exiting?")
-			   .font(.system(size: 23))
-		 }
-		 .alert("Replace existing data?", isPresented: $showingSyncAlert) {
-			Button("Fill Empty Only") {
-			   Task {
-				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: false)
-			   }
+	  }
+	  .alert("Replace existing data?", isPresented: $showingSyncAlert) {
+		 Button("Fill Empty Only") {
+			Task {
+			   await self.bigPlanViewModel.syncWithHealthKit(overwrite: false)
 			}
-			Button("Replace All", role: .destructive) {
-			   Task {
-				  await self.bigPlanViewModel.syncWithHealthKit(overwrite: true)
-			   }
-			}
-			Button("Cancel", role: .cancel) { }
-		 } message: {
-			Text("Do you want to overwrite all fields with Apple Health data, or only fill empty fields?")
 		 }
+		 Button("Replace All", role: .destructive) {
+			Task {
+			   await self.bigPlanViewModel.syncWithHealthKit(overwrite: true)
+			}
+		 }
+		 Button("Cancel", role: .cancel) { }
+	  } message: {
+		 Text("Do you want to overwrite all fields with Apple Health data, or only fill empty fields?")
 	  }
 	  .preferredColorScheme(.dark)
 	  .task {
@@ -168,10 +167,12 @@ struct DailyFormView_Previews: PreviewProvider {
    static var previews: some View {
 	  let container = try! ModelContainer(for: DailyHealthEntry.self)
 	  let context = ModelContext(container)
-	  return DailyFormView(
-		 selectedTab: .constant(0),
-		 bigPlanViewModel: BigPlanViewModel(context: context)
-	  )
+	  NavigationStack {
+		 DailyFormView(
+			selectedTab: .constant(0),
+			bigPlanViewModel: BigPlanViewModel(context: context)
+		 )
+	  }
 	  .modelContainer(container)
    }
 }

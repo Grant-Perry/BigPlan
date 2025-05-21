@@ -8,8 +8,8 @@ struct FormContentView: View {
    var body: some View {
 	  VStack(spacing: 24) {
 		 ReadingsView(bigPlanViewModel: bigPlanViewModel)
-		 SleepStressView(bigPlanViewModel: bigPlanViewModel)
 		 ActivityView(bigPlanViewModel: bigPlanViewModel, liveSteps: $liveSteps)
+		 SleepStressView(bigPlanViewModel: bigPlanViewModel)
 		 MealsView(bigPlanViewModel: bigPlanViewModel)
 		 NotesView(bigPlanViewModel: bigPlanViewModel)
 		 ActionButtonsView(

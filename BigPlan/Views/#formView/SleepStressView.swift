@@ -20,15 +20,17 @@ struct SleepStressView: View {
 			.textCase(.uppercase)
 
 		 VStack(spacing: 18) {
-			SleepTimeInput(
-			   sleepHoursString: $sleepHoursString,
-			   sleepMinutesString: $sleepMinutesString,
-			   focusedField: focusedField,
-			   setFocus: { self.focusedField = $0 },
-			   hkUpdatedSleep: localHKUpdated,
-			   hasSleepValue: bigPlanViewModel.sleepTime != nil,
-			   onUpdate: updateViewModelSleepTime
-			)
+			HStack(spacing: 12) {
+			   SleepTimeInput(
+				  sleepHoursString: $sleepHoursString,
+				  sleepMinutesString: $sleepMinutesString,
+				  focusedField: focusedField,
+				  setFocus: { self.focusedField = $0 },
+				  hkUpdatedSleep: localHKUpdated,
+				  hasSleepValue: bigPlanViewModel.sleepTime != nil,
+				  onUpdate: updateViewModelSleepTime
+			   )
+			}
 			.onChange(of: bigPlanViewModel.sleepTime) { _, _ in
 			   updateLocalSleepStrings()
 			}
@@ -86,42 +88,18 @@ struct SleepStressView: View {
    }
 
    private func updateLocalSleepStrings() {
-	  let currentLocalFormattedTime: String?
-	  if sleepHoursString.isEmpty && sleepMinutesString.isEmpty {
-		 currentLocalFormattedTime = nil
-	  } else {
-		 let h = Int(sleepHoursString) ?? 0
-		 let m = Int(sleepMinutesString) ?? 0
-		 currentLocalFormattedTime = "\(h):\(String(format: "%02d", m))"
-	  }
-
-	  if bigPlanViewModel.sleepTime == currentLocalFormattedTime {
-		 return
-	  }
-
 	  guard let timeString = bigPlanViewModel.sleepTime else {
 		 sleepHoursString = ""
 		 sleepMinutesString = ""
 		 return
 	  }
 
-	  if timeString.contains("h") {
-		 let components = timeString.lowercased().split(separator: "h")
-		 if let hours = components.first?.trimmingCharacters(in: .whitespaces),
-			let minutes = components.last?.replacingOccurrences(of: "m", with: "").trimmingCharacters(in: .whitespaces) {
-			sleepHoursString = hours
-			sleepMinutesString = String(format: "%02d", Int(minutes) ?? 0)
-		 }
-	  } else {
-		 let components = timeString.split(separator: ":").map(String.init)
-		 if components.count == 2 {
-			sleepHoursString = components[0]
-			if let minInt = Int(components[1]) {
-			   sleepMinutesString = String(format: "%02d", minInt)
-			} else {
-			   sleepMinutesString = components[1]
-			}
-		 }
+	  let components = timeString.lowercased().split(separator: "h")
+	  if components.count == 2,
+		 let hours = components.first?.trimmingCharacters(in: .whitespaces),
+		 let minutes = components.last?.replacingOccurrences(of: "m", with: "").trimmingCharacters(in: .whitespaces) {
+		 sleepHoursString = hours
+		 sleepMinutesString = minutes
 	  }
    }
 }

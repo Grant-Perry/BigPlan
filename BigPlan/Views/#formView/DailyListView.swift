@@ -27,65 +27,62 @@ struct DailyListView: View {
    @State private var recentlyDeletedEntry: DailyHealthEntry?
    
    var body: some View {
-	  NavigationStack {
-		 Group {
-			if entries.isEmpty {
-			   ContentUnavailableView(
-				  "No Health Entries",
-				  systemImage: "heart.text.square",
-				  description: Text("Tap the + tab to add your first entry")
-			   )
-			} else {
-			   EntryListView(
-				  selectedEntry: $selectedEntry,
-				  showDeleteConfirmation: $showDeleteConfirmation,
-				  entryToDelete: $entryToDelete
-			   )
-			}
-		 }
-		 .navigationTitle("Health History")
-		 .navigationDestination(item: $selectedEntry) { entry in
-			DailyFormView(
-			   selectedTab: $selectedTab,
-			   bigPlanViewModel: BigPlanViewModel(context: modelContext, existingEntry: entry)
+	  Group {
+		 if entries.isEmpty {
+			ContentUnavailableView(
+			   "No Health Entries",
+			   systemImage: "heart.text.square",
+			   description: Text("Tap the + tab to add your first entry")
+			)
+		 } else {
+			EntryListView(
+			   selectedEntry: $selectedEntry,
+			   showDeleteConfirmation: $showDeleteConfirmation,
+			   entryToDelete: $entryToDelete
 			)
 		 }
-		 .sheet(isPresented: $showSettings) {
-			SettingsView(modelContext: modelContext)
-		 }
-		 .toolbar {
-			ToolbarItem(placement: .navigationBarTrailing) {
-			   Button {
-				  showSettings = true
-			   } label: {
-				  Image(systemName: "gearshape.fill")
-					 .font(.system(size: 19))
-			   }
-			}
-		 }
-		 .alert("Delete this entry?", isPresented: $showDeleteConfirmation) {
-			Button("Delete", role: .destructive) {
-			   if let entry = entryToDelete {
-				  withAnimation {
-					 modelContext.delete(entry)
-					 try? modelContext.save()
-					 entryToDelete = nil
-				  }
-			   }
-			}
-			Button("Cancel", role: .cancel) { }
-		 }
-		 .overlay(alignment: .bottom) {
-			if showUndoToast {
-			   UndoToastView(
-				  showToast: $showUndoToast,
-				  recentlyDeletedEntry: $recentlyDeletedEntry
-			   )
-			}
-		 }
-		 
-		 AppConstants.VersionFooter()
 	  }
+	  .navigationTitle("Health History")
+	  .navigationDestination(item: $selectedEntry) { entry in
+		 DailyFormView(
+			selectedTab: $selectedTab,
+			bigPlanViewModel: BigPlanViewModel(context: modelContext, existingEntry: entry)
+		 )
+	  }
+	  .sheet(isPresented: $showSettings) {
+		 SettingsView(modelContext: modelContext)
+	  }
+	  .toolbar {
+		 ToolbarItem(placement: .navigationBarTrailing) {
+			Button {
+			   showSettings = true
+			} label: {
+			   Image(systemName: "gearshape.fill")
+				  .font(.system(size: 19))
+			}
+		 }
+	  }
+	  .alert("Delete this entry?", isPresented: $showDeleteConfirmation) {
+		 Button("Delete", role: .destructive) {
+			if let entry = entryToDelete {
+			   withAnimation {
+				  modelContext.delete(entry)
+				  try? modelContext.save()
+				  entryToDelete = nil
+			   }
+			}
+		 }
+		 Button("Cancel", role: .cancel) { }
+	  }
+	  .overlay(alignment: .bottom) {
+		 if showUndoToast {
+			UndoToastView(
+			   showToast: $showUndoToast,
+			   recentlyDeletedEntry: $recentlyDeletedEntry
+			)
+		 }
+	  }
+	  AppConstants.VersionFooter()
    }
 }
 

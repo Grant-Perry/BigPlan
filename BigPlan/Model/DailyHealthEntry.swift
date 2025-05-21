@@ -30,8 +30,10 @@ final class DailyHealthEntry {
    var hkUpdatedHeartRate: Bool = false
    var hkUpdatedSleepTime: Bool = false
    var hkUpdatedSteps: Bool = false
-   var heartRate: Double?
-   
+   var minHeartRate: Double?
+   var maxHeartRate: Double?
+   var avgHeartRate: Double?
+
    init(
 	  id: UUID = UUID(),
 	  date: Date = Date(),
@@ -59,7 +61,9 @@ final class DailyHealthEntry {
 	  hkUpdatedHeartRate: Bool = false,
 	  hkUpdatedSleepTime: Bool = false,
 	  hkUpdatedSteps: Bool = false,
-	  heartRate: Double? = nil
+	  minHeartRate: Double? = nil,
+	  maxHeartRate: Double? = nil,
+	  avgHeartRate: Double? = nil
    ) {
 	  self.id = id
 	  self.date = date
@@ -87,6 +91,8 @@ final class DailyHealthEntry {
 	  self.hkUpdatedHeartRate = hkUpdatedHeartRate
 	  self.hkUpdatedSleepTime = hkUpdatedSleepTime
 	  self.hkUpdatedSteps = hkUpdatedSteps
-	  self.heartRate = heartRate
+	  self.minHeartRate = minHeartRate
+	  self.maxHeartRate = maxHeartRate
+	  self.avgHeartRate = avgHeartRate
    }
 }

@@ -1,10 +1,3 @@
-//   BigPlanApp.swift
-//   BigPlan
-//
-//   Created by: Gp. on 5/5/25 at 10:11 AM
-//     Modified:
-//
-//  Copyright Delicious Studios, LLC. - Grant Perry
 
 import SwiftUI
 import SwiftData
@@ -24,8 +17,8 @@ struct BigPlanApp: App {
    var body: some Scene {
 	  WindowGroup {
 		 ZStack {
-                        BigPlanTabView(modelContext: persistenceController.container.mainContext)
-                           .environment(\.modelContext, persistenceController.container.mainContext)
+			BigPlanTabView(modelContext: persistenceController.container.mainContext)
+			   .environment(\.modelContext, persistenceController.container.mainContext)
 
 			if showSplash {
 			   MainSplashView()
@@ -41,7 +34,7 @@ struct BigPlanApp: App {
 						}
 				  )
 				  .onAppear {
-					 // Auto-dismiss after 6 seconds
+					 // Auto-dismiss after 2 seconds
 					 // Launch-time silent backfill, includes today.
 					 Task {
 						let authorized = await HealthKitManager.shared.requestAuthorization()
@@ -49,7 +42,7 @@ struct BigPlanApp: App {
 						   await launchBackfillViewModel.backfillMissingEntries()
 						}
 					 }
-					 DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
+					 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
 						withAnimation {
 						   showSplash = false
 						}
