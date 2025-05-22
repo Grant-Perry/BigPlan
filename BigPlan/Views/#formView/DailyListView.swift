@@ -11,6 +11,102 @@ private let logger = Logger(subsystem: "BigPlan", category: "DailyListView")
 import SwiftUI
 import SwiftData
 
+struct WeekSection: View {
+   let entries: [DailyHealthEntry]
+   let isCurrentWeek: Bool
+   @Binding var expandedWeekId: String?
+   let weekId: String
+   @Binding var selectedEntry: DailyHealthEntry?
+   @Binding var showDeleteConfirmation: Bool
+   @Binding var entryToDelete: DailyHealthEntry?
+   
+   var weekDateRange: (start: Date?, end: Date?) {
+	  let sortedDates = entries.map { $0.date }.sorted()
+	  return (sortedDates.first, sortedDates.last)
+   }
+   
+   var weekTitle: String {
+	  guard let firstDate = weekDateRange.start,
+			let lastDate = weekDateRange.end else { return "" }
+	  
+	  let dateFormatter = DateFormatter()
+	  dateFormatter.dateFormat = "MMM d"
+	  return "\(dateFormatter.string(from: firstDate)) - \(dateFormatter.string(from: lastDate))"
+   }
+   
+   func getDayName(_ date: Date) -> String {
+	  let formatter = DateFormatter()
+	  formatter.dateFormat = "EEE"
+	  return formatter.string(from: date)
+   }
+   
+   func getHeaderDays(_ firstDate: Date, _ lastDate: Date) -> String {
+	  let firstDay = getDayName(firstDate)
+	  let lastDay = getDayName(lastDate)
+	  return "\(firstDay)\(String(repeating: " ", count: 12))\(lastDay)"
+   }
+   
+   var headerView: some View {
+	  HStack {
+		 VStack(alignment: .leading, spacing: 2) {
+			if let firstDate = weekDateRange.start,
+			   let lastDate = weekDateRange.end {
+			   Text(getHeaderDays(firstDate, lastDate))
+				  .font(.caption)
+				  .foregroundColor(.gpRed)
+			}
+			Text(weekTitle)
+			   .font(.headline)
+		 }
+		 Spacer()
+	  }
+	  .padding(.vertical, 8)
+	  .background(
+		 LinearGradient(
+			gradient: Gradient(colors: [.gpLtBlue.opacity(0.3), .clear]),
+			startPoint: .top,
+			endPoint: .bottom
+		 )
+	  )
+   }
+   
+   var sortedEntries: [DailyHealthEntry] {
+	  entries.sorted { $0.date < $1.date }
+   }
+   
+   var body: some View {
+	  DisclosureGroup(
+		 isExpanded: Binding(
+			get: { expandedWeekId == weekId },
+			set: { if $0 { expandedWeekId = weekId } else { expandedWeekId = nil } }
+		 )
+	  ) {
+		 ForEach(sortedEntries) { entry in
+			EntryRowView(entry: entry)
+			   .onTapGesture {
+				  selectedEntry = entry
+			   }
+			   .swipeActions(edge: .trailing) {
+				  Button(role: .destructive) {
+					 entryToDelete = entry
+					 showDeleteConfirmation = true
+				  } label: {
+					 Label("Delete", systemImage: "trash")
+				  }
+			   }
+		 }
+	  } label: {
+		 headerView
+	  }
+	  .accentColor(.primary)
+	  .onAppear {
+		 if isCurrentWeek {
+			expandedWeekId = weekId
+		 }
+	  }
+   }
+}
+
 struct DailyListView: View {
    @Binding var selectedTab: Int
    @Environment(\.modelContext) private var modelContext
@@ -25,6 +121,33 @@ struct DailyListView: View {
    @State private var entryToDelete: DailyHealthEntry?
    @State private var showUndoToast = false
    @State private var recentlyDeletedEntry: DailyHealthEntry?
+   @State private var expandedWeekId: String?
+   
+   var entriesByWeek: [[DailyHealthEntry]] {
+	  let calendar = Calendar.current
+	  var cal = Calendar(identifier: .gregorian)
+	  cal.firstWeekday = 1  // 1 means Sunday
+	  
+	  let grouped = Dictionary(grouping: entries) { entry in
+		 cal.dateComponents([.weekOfYear, .year], from: entry.date)
+	  }
+	  return grouped.values.sorted { first, second in
+		 guard let date1 = first.first?.date, let date2 = second.first?.date else { return false }
+		 return date1 > date2
+	  }
+   }
+   
+   func isCurrentWeek(_ entries: [DailyHealthEntry]) -> Bool {
+	  guard let firstDate = entries.first?.date else { return false }
+	  return Calendar.current.isDate(firstDate, equalTo: Date(), toGranularity: .weekOfYear)
+   }
+   
+   func weekId(_ entries: [DailyHealthEntry]) -> String {
+	  guard let firstDate = entries.first?.date else { return UUID().uuidString }
+	  let calendar = Calendar.current
+	  let components = calendar.dateComponents([.year, .weekOfYear], from: firstDate)
+	  return "\(components.year ?? 0)-\(components.weekOfYear ?? 0)"
+   }
    
    var body: some View {
 	  Group {
@@ -35,11 +158,20 @@ struct DailyListView: View {
 			   description: Text("Tap the + tab to add your first entry")
 			)
 		 } else {
-			EntryListView(
-			   selectedEntry: $selectedEntry,
-			   showDeleteConfirmation: $showDeleteConfirmation,
-			   entryToDelete: $entryToDelete
-			)
+			List {
+			   ForEach(entriesByWeek, id: \.self) { weekEntries in
+				  WeekSection(
+					 entries: weekEntries,
+					 isCurrentWeek: isCurrentWeek(weekEntries),
+					 expandedWeekId: $expandedWeekId,
+					 weekId: weekId(weekEntries),
+					 selectedEntry: $selectedEntry,
+					 showDeleteConfirmation: $showDeleteConfirmation,
+					 entryToDelete: $entryToDelete
+				  )
+			   }
+			}
+			.listStyle(.insetGrouped)
 		 }
 	  }
 	  .navigationTitle("Health History")
